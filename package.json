@@ -1,0 +1,30 @@
+{
+  "name": "react-wall-frame-project",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-draggable": "^4.5.0",
+    "react-easy-crop": "^4.7.5",
+    "react-rnd": "^10.5.2",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

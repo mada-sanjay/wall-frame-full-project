@@ -1,0 +1,92 @@
+.app-container {
+  padding: 30px;
+  font-family: Arial, sans-serif;
+}
+
+.title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 10rem;
+  margin-bottom: 50px;
+}
+
+.upload-section {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: bold;
+  
+}
+
+.label {
+  font-weight: 600;
+  margin-right: 10px;
+}
+
+/* Upload button styles */
+.upload-btn {
+  background: #4f8cff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-right: 8px;
+  box-shadow: 0 2px 8px rgba(79, 140, 255, 0.08);
+}
+.upload-btn:hover {
+  background: #2563eb;
+}
+
+/* For label cursor pointer and alignment */
+.upload-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.image-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.image-frame .delete-btn {
+  display: none;
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: #ff4d4f;
+  color: #fff;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: opacity 0.2s;
+  opacity: 0;
+}
+.image-frame:hover .delete-btn {
+  display: flex;
+  opacity: 1;
+}
+
+/* Hide number input spinners for all browsers */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
