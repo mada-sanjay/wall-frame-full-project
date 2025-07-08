@@ -166,3 +166,11 @@ select {
 .upload-btn {
   margin-top: 2px;
 }
+
+/* Add sidebar container styles for colored backgrounds */
+.sidebar-container {
+  background: #3776d6;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 20px;
+}
