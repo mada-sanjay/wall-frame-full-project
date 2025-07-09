@@ -74,13 +74,21 @@ function WallDesigner({ headingBg, setHeadingBg }) {
   const [showDecorations, setShowDecorations] = useState(false);
   const [decorationOverlays, setDecorationOverlays] = useState([]);
   const [hoveredDecoration, setHoveredDecoration] = useState(null);
+  const [savedSessions, setSavedSessions] = useState([]);
+  const [showDrafts, setShowDrafts] = useState(false);
   const wallRef = useRef(null);
   const defaultWallImages = [
-    '/julia-RuCVvjuyNeQ-unsplash (1).jpg',
-    '/naomi-hebert-2dcYhvbHV-M-unsplash.jpg',
-    '/spacejoy-IH7wPsjwomc-unsplash.jpg',
-    '/pexels-pixabay-1640777.jpg',
+    
     '/pexels-maksgelatin-4352247.jpg',
+    '/wall1.jpeg',
+    '/sanj.jpg',
+    '/page.avif',
+    '/raj.webp',
+    
+    
+    
+   
+    
     
     // Add more local images here as needed
   ];
@@ -102,6 +110,10 @@ function WallDesigner({ headingBg, setHeadingBg }) {
   ];
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchDrafts();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("userEmail");
@@ -127,6 +139,7 @@ function WallDesigner({ headingBg, setHeadingBg }) {
       decorationOverlays,
       // Add more state as needed
     };
+    console.log("Saving draft with data:", session_data);
     try {
       const res = await fetch("/api/save-session", {
         method: "POST",
@@ -134,13 +147,88 @@ function WallDesigner({ headingBg, setHeadingBg }) {
         body: JSON.stringify({ user_email, session_data })
       });
       const data = await res.json();
+      console.log("Save response:", data);
       if (res.ok) {
         alert("Draft saved successfully!");
+        // Refresh the drafts list
+        fetchDrafts();
       } else {
         alert(data.message || "Failed to save draft.");
       }
     } catch (err) {
+      console.error("Network error while saving draft:", err);
       alert("Network error while saving draft.");
+    }
+  };
+
+  const fetchDrafts = async () => {
+    const user_email = localStorage.getItem("userEmail");
+    if (!user_email) return;
+    try {
+      console.log("Fetching drafts for:", user_email);
+      const res = await fetch(`/api/sessions?user_email=${encodeURIComponent(user_email)}`);
+      console.log("Response status:", res.status);
+      const data = await res.json();
+      console.log("Fetched data:", data);
+      if (res.ok) {
+        setSavedSessions(data.sessions);
+      } else {
+        console.error("Failed to fetch drafts:", data.message);
+      }
+    } catch (err) {
+      console.error("Failed to fetch drafts:", err);
+    }
+  };
+
+  const loadDraft = (sessionData) => {
+    try {
+      console.log("Loading draft data:", sessionData);
+      // sessionData is already a JSON string from the database
+      const data = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
+      console.log("Parsed data:", data);
+      
+      // Set the state with the loaded data
+      if (data.wallSize) setWallSize(data.wallSize);
+      if (data.wallImage !== undefined) setWallImage(data.wallImage);
+      if (data.shape) setShape(data.shape);
+      if (data.uploadedImages) setUploadedImages(data.uploadedImages);
+      if (data.decorationOverlays) setDecorationOverlays(data.decorationOverlays);
+      
+      setShowDrafts(false);
+      alert("Draft loaded successfully!");
+    } catch (err) {
+      console.error("Failed to load draft:", err);
+      console.error("Session data that failed:", sessionData);
+      alert("Failed to load draft. Check console for details.");
+    }
+  };
+
+  const deleteDraft = async (sessionId) => {
+    const user_email = localStorage.getItem("userEmail");
+    if (!user_email) {
+      alert("You must be logged in to delete a draft.");
+      return;
+    }
+    
+    if (!confirm("Are you sure you want to delete this draft?")) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/api/session/${sessionId}?user_email=${encodeURIComponent(user_email)}`, {
+        method: "DELETE"
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("Draft deleted successfully!");
+        // Refresh the drafts list
+        fetchDrafts();
+      } else {
+        alert(data.message || "Failed to delete draft.");
+      }
+    } catch (err) {
+      console.error("Network error while deleting draft:", err);
+      alert("Network error while deleting draft.");
     }
   };
 
@@ -185,18 +273,27 @@ function WallDesigner({ headingBg, setHeadingBg }) {
 
   const handleImagesUpload = (e) => {
     const files = Array.from(e.target.files);
-    const newImages = files.map((file, idx) => ({
-      id: generateId(),
-      url: URL.createObjectURL(file),
-      name: file.name,
-      x: 20 + (uploadedImages.length + idx) * 30,
-      y: 20 + (uploadedImages.length + idx) * 30,
-      width: 100,
-      height: 100,
-      shape: shape,
-      frame: 'none',
-    }));
-    setUploadedImages((prev) => [...prev, ...newImages]);
+    
+    // Process each file to convert to Base64
+    files.forEach((file, idx) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Data = event.target.result;
+        const newImage = {
+          id: generateId(),
+          url: base64Data, // Store as Base64 instead of blob URL
+          name: file.name,
+          x: 20 + (uploadedImages.length + idx) * 30,
+          y: 20 + (uploadedImages.length + idx) * 30,
+          width: 100,
+          height: 100,
+          shape: shape,
+          frame: 'none',
+        };
+        setUploadedImages((prev) => [...prev, newImage]);
+      };
+      reader.readAsDataURL(file); // Convert to Base64
+    });
   };
 
   // Update position/size of an image by id
@@ -226,20 +323,49 @@ function WallDesigner({ headingBg, setHeadingBg }) {
       const wallRect = wallRef.current.getBoundingClientRect();
       const dropX = e.clientX - wallRect.left;
       const dropY = e.clientY - wallRect.top;
-      setUploadedImages(prev => [
-        ...prev,
-        {
-          id: generateId(),
-          url: imgUrl,
-          name: 'Default Image',
-          x: dropX - 50,
-          y: dropY - 50,
-          width: 100,
-          height: 100,
-          shape: shape,
-          frame: 'none',
-        }
-      ]);
+      
+      // Convert the default image URL to Base64 for persistence
+      fetch(imgUrl)
+        .then(response => response.blob())
+        .then(blob => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const base64Data = event.target.result;
+            setUploadedImages(prev => [
+              ...prev,
+              {
+                id: generateId(),
+                url: base64Data, // Store as Base64 instead of direct URL
+                name: 'Default Image',
+                x: dropX - 50,
+                y: dropY - 50,
+                width: 100,
+                height: 100,
+                shape: shape,
+                frame: 'none',
+              }
+            ]);
+          };
+          reader.readAsDataURL(blob);
+        })
+        .catch(error => {
+          console.error('Error converting default image to Base64:', error);
+          // Fallback to original URL if conversion fails
+          setUploadedImages(prev => [
+            ...prev,
+            {
+              id: generateId(),
+              url: imgUrl,
+              name: 'Default Image',
+              x: dropX - 50,
+              y: dropY - 50,
+              width: 100,
+              height: 100,
+              shape: shape,
+              frame: 'none',
+            }
+          ]);
+        });
     }
   };
   const handleWallDragOver = (e) => {
@@ -288,6 +414,24 @@ function WallDesigner({ headingBg, setHeadingBg }) {
             Save Draft
           </button>
           <button
+            onClick={() => {
+              fetchDrafts();
+              setShowDrafts(!showDrafts);
+            }}
+            style={{
+              padding: "8px 20px",
+              fontSize: 15,
+              cursor: "pointer",
+              background: "#fff",
+              color: "#1976d2",
+              border: "none",
+              borderRadius: 6,
+              fontWeight: 600
+            }}
+          >
+            My Drafts
+          </button>
+          <button
             onClick={handleLogout}
             style={{
               padding: "8px 20px",
@@ -319,6 +463,77 @@ function WallDesigner({ headingBg, setHeadingBg }) {
           </button>
         </div>
       </div>
+      {/* Drafts Dropdown */}
+      {showDrafts && (
+        <div style={{
+          position: 'absolute',
+          top: 80,
+          right: 24,
+          background: '#fff',
+          border: '1px solid #e0e0e0',
+          borderRadius: 8,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+          padding: 16,
+          minWidth: 300,
+          maxHeight: 400,
+          overflowY: 'auto',
+          zIndex: 1000
+        }}>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 12 }}>My Saved Drafts</div>
+          {savedSessions.length === 0 ? (
+            <div style={{ color: '#888', fontSize: 14 }}>No drafts saved yet.</div>
+          ) : (
+            savedSessions.map((session, idx) => (
+              <div key={session.id} style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '8px 0',
+                borderBottom: idx < savedSessions.length - 1 ? '1px solid #eee' : 'none'
+              }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 500 }}>Draft {savedSessions.length - idx}</div>
+                  <div style={{ fontSize: 12, color: '#666' }}>
+                    {new Date(session.created_at).toLocaleString()}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => loadDraft(session.session_data)}
+                    style={{
+                      padding: '4px 12px',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      background: '#1976d2',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 4,
+                      fontWeight: 500
+                    }}
+                  >
+                    Load
+                  </button>
+                  <button
+                    onClick={() => deleteDraft(session.id)}
+                    style={{
+                      padding: '4px 12px',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      background: '#d32f2f',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 4,
+                      fontWeight: 500
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
       {/* Layout: Left sidebar, Wall container, Right controls */}
       <div style={{
         marginTop: 12,

@@ -56,4 +56,51 @@ router.post('/save-session', (req, res) => {
   );
 });
 
+// Get user sessions endpoint
+router.get('/sessions', (req, res) => {
+  const { user_email } = req.query;
+  console.log("GET /sessions called with user_email:", user_email);
+  if (!user_email) {
+    console.log("Missing user_email in request");
+    return res.status(400).json({ message: 'Missing user_email' });
+  }
+  db.query(
+    'SELECT id, session_data, created_at FROM sessions WHERE user_email = ? ORDER BY created_at DESC',
+    [user_email],
+    (err, results) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ message: 'Database error', error: err });
+      }
+      console.log("Found sessions:", results);
+      res.json({ sessions: results });
+    }
+  );
+});
+
+// Delete session endpoint
+router.delete('/session/:id', (req, res) => {
+  const { id } = req.params;
+  const { user_email } = req.query;
+  
+  if (!user_email) {
+    return res.status(400).json({ message: 'Missing user_email' });
+  }
+  
+  db.query(
+    'DELETE FROM sessions WHERE id = ? AND user_email = ?',
+    [id, user_email],
+    (err, result) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ message: 'Database error', error: err });
+      }
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'Session not found or unauthorized' });
+      }
+      res.json({ message: 'Session deleted successfully' });
+    }
+  );
+});
+
 module.exports = router; 
