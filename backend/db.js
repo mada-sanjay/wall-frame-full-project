@@ -7,12 +7,11 @@ const db = mysql.createConnection({
   database: 'wallframe'
 });
 
-console.log('Connecting to MySQL...');
 db.connect((err) => {
   if (err) {
-    console.error('MySQL connection error:', err);
+    console.error('Error connecting to MySQL:', err);
   } else {
-    console.log('MySQL connected successfully!');
+    console.log('Connected to MySQL database!');
   }
 });
 
