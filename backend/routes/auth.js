@@ -64,7 +64,7 @@ router.post('/login', (req, res) => {
         if (isMatch) {
           // Success: login and return token
           const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
-          return res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email } });
+          return res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin } });
         } else {
           // Fallback: check plain text (for legacy users)
           if (password === user.password) {
@@ -76,7 +76,7 @@ router.post('/login', (req, res) => {
             });
             // Success: login and return token
             const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
-            return res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email } });
+            return res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin } });
           } else {
             return res.status(400).json({ message: 'Invalid credentials' });
           }
@@ -199,6 +199,78 @@ router.post('/update-password', (req, res) => {
       });
     }
   );
+});
+
+// --- ADMIN MIDDLEWARE ---
+function requireAdmin(req, res, next) {
+  // req.user is set by authenticateToken
+  const userId = req.user && req.user.id;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  db.query('SELECT isAdmin FROM users WHERE id = ?', [userId], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error', error: err });
+    if (!results[0] || !results[0].isAdmin) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    next();
+  });
+}
+
+// --- ADMIN ROUTES ---
+// List all users
+router.get('/admin/users', authenticateToken, requireAdmin, (req, res) => {
+  db.query('SELECT id, email, isAdmin FROM users', (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error', error: err });
+    res.json({ users: results });
+  });
+});
+// Promote/demote user
+router.put('/admin/users/:id/promote', authenticateToken, requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const { isAdmin } = req.body;
+  db.query('UPDATE users SET isAdmin = ? WHERE id = ?', [isAdmin ? 1 : 0, id], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error', error: err });
+    res.json({ message: 'User updated' });
+  });
+});
+// Delete user
+router.delete('/admin/users/:id', authenticateToken, requireAdmin, (req, res) => {
+  const { id } = req.params;
+  db.query('DELETE FROM users WHERE id = ?', [id], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error', error: err });
+    res.json({ message: 'User deleted' });
+  });
+});
+// List all drafts
+router.get('/admin/drafts', authenticateToken, requireAdmin, (req, res) => {
+  db.query('SELECT id, user_email, session_data, created_at FROM sessions', (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error', error: err });
+    res.json({ drafts: results });
+  });
+});
+// Delete draft
+router.delete('/admin/drafts/:id', authenticateToken, requireAdmin, (req, res) => {
+  const { id } = req.params;
+  db.query('DELETE FROM sessions WHERE id = ?', [id], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error', error: err });
+    res.json({ message: 'Draft deleted' });
+  });
+});
+// Analytics
+router.get('/admin/stats', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    db.query('SELECT COUNT(*) as userCount FROM users', (err, userResults) => {
+      if (err) return res.status(500).json({ message: 'Database error', error: err });
+      db.query('SELECT COUNT(*) as draftCount FROM sessions', (err, draftResults) => {
+        if (err) return res.status(500).json({ message: 'Database error', error: err });
+        res.json({
+          userCount: userResults[0].userCount,
+          draftCount: draftResults[0].draftCount
+        });
+      });
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching stats', error: err });
+  }
 });
 
 module.exports = router; 

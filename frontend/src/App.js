@@ -5,6 +5,7 @@ import RegisterPage from "./RegisterPage";
 import LandingPage from "./LandingPage";
 import WallDesigner from "./WallDesigner";
 import ProfilePage from "./ProfilePage";
+import AdminPage from "./AdminPage";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/walldesigner" element={<WallDesigner />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>

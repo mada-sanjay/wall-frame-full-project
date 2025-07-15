@@ -459,6 +459,25 @@ function WallDesigner({ headingBg, setHeadingBg }) {
           </div>
         )}
         <div style={{ position: 'absolute', right: 24, top: 24, display: 'flex', gap: 8 }}>
+          {/* Admin Dashboard button, only for admins */}
+          {localStorage.getItem('isAdmin') === '1' && (
+            <button
+              onClick={() => navigate('/admin')}
+              style={{
+                padding: "4px 10px",
+                fontSize: 13,
+                cursor: "pointer",
+                background: "#fff",
+                color: "#1976d2",
+                border: "2px solid #1976d2",
+                borderRadius: 4,
+                fontWeight: 600,
+                marginRight: 8
+              }}
+            >
+              Admin Dashboard
+            </button>
+          )}
           <button
             onClick={handleNewDesign}
             style={{

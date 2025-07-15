@@ -27,6 +27,7 @@ function LoginPage({ onLogin }) {
         if (onLogin) onLogin();
         if (data && data.user && data.user.email) {
           localStorage.setItem("userEmail", data.user.email);
+          localStorage.setItem("isAdmin", data.user.isAdmin ? "1" : "0");
         }
         if (data && data.token) {
           localStorage.setItem("token", data.token);
