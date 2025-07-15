@@ -28,6 +28,9 @@ function LoginPage({ onLogin }) {
         if (data && data.user && data.user.email) {
           localStorage.setItem("userEmail", data.user.email);
         }
+        if (data && data.token) {
+          localStorage.setItem("token", data.token);
+        }
         console.log('Login successful, navigating to /walldesigner'); // Debug log
         navigate("/walldesigner");
       } else {

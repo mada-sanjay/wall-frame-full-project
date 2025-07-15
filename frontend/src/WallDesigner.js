@@ -76,6 +76,7 @@ function WallDesigner({ headingBg, setHeadingBg }) {
   const [hoveredDecoration, setHoveredDecoration] = useState(null);
   const [savedSessions, setSavedSessions] = useState([]);
   const [showDrafts, setShowDrafts] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState(null); // Track currently loaded draft
   const wallRef = useRef(null);
   const defaultWallImages = [
     
@@ -124,6 +125,19 @@ function WallDesigner({ headingBg, setHeadingBg }) {
     navigate("/profile");
   };
 
+  const handleNewDesign = () => {
+    // Clear current state and start fresh
+    setWallSize({ width: 500, height: 300 });
+    setWallImage(null);
+    setShape('square');
+    setUploadedImages([]);
+    setDecorationOverlays([]);
+    setInputWidth(500);
+    setInputHeight(300);
+    setCurrentDraftId(null); // Clear current draft ID
+    alert("Started new design!");
+  };
+
   const handleSaveDraft = async () => {
     const user_email = localStorage.getItem("userEmail");
     if (!user_email) {
@@ -140,16 +154,38 @@ function WallDesigner({ headingBg, setHeadingBg }) {
       // Add more state as needed
     };
     console.log("Saving draft with data:", session_data);
+    
     try {
-      const res = await fetch("/api/save-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_email, session_data })
-      });
+      let res;
+      const token = localStorage.getItem('token');
+      if (currentDraftId) {
+        // Update existing draft
+        res = await fetch(`/api/update-session/${currentDraftId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify({ user_email, session_data })
+        });
+      } else {
+        // Create new draft
+        res = await fetch("/api/save-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify({ user_email, session_data })
+        });
+      }
+      
       const data = await res.json();
       console.log("Save response:", data);
       if (res.ok) {
-        alert("Draft saved successfully!");
+        if (currentDraftId) {
+          alert("Draft updated successfully!");
+        } else {
+          alert("Draft saved successfully!");
+          // Set the current draft ID if it's a new draft
+          if (data.sessionId) {
+            setCurrentDraftId(data.sessionId);
+          }
+        }
         // Refresh the drafts list
         fetchDrafts();
       } else {
@@ -166,7 +202,9 @@ function WallDesigner({ headingBg, setHeadingBg }) {
     if (!user_email) return;
     try {
       console.log("Fetching drafts for:", user_email);
-      const res = await fetch(`/api/sessions?user_email=${encodeURIComponent(user_email)}`);
+      const res = await fetch(`/api/sessions?user_email=${encodeURIComponent(user_email)}`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
+      });
       console.log("Response status:", res.status);
       const data = await res.json();
       console.log("Fetched data:", data);
@@ -180,7 +218,7 @@ function WallDesigner({ headingBg, setHeadingBg }) {
     }
   };
 
-  const loadDraft = (sessionData) => {
+  const loadDraft = (sessionData, sessionId) => {
     try {
       console.log("Loading draft data:", sessionData);
       // sessionData is already a JSON string from the database
@@ -193,6 +231,9 @@ function WallDesigner({ headingBg, setHeadingBg }) {
       if (data.shape) setShape(data.shape);
       if (data.uploadedImages) setUploadedImages(data.uploadedImages);
       if (data.decorationOverlays) setDecorationOverlays(data.decorationOverlays);
+      
+      // Set the current draft ID so future saves will update this draft
+      setCurrentDraftId(sessionId);
       
       setShowDrafts(false);
       alert("Draft loaded successfully!");
@@ -216,11 +257,16 @@ function WallDesigner({ headingBg, setHeadingBg }) {
     
     try {
       const res = await fetch(`/api/session/${sessionId}?user_email=${encodeURIComponent(user_email)}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
       if (res.ok) {
         alert("Draft deleted successfully!");
+        // If we're deleting the currently loaded draft, clear the current draft ID
+        if (currentDraftId === sessionId) {
+          setCurrentDraftId(null);
+        }
         // Refresh the drafts list
         fetchDrafts();
       } else {
@@ -397,21 +443,51 @@ function WallDesigner({ headingBg, setHeadingBg }) {
         position: 'relative'
       }}>
         Design Your Wall
-        <div style={{ position: 'absolute', right: 24, top: 24, display: 'flex', gap: 12 }}>
+        {currentDraftId && (
+          <div style={{
+            position: 'absolute',
+            left: 24,
+            top: 24,
+            background: '#fff',
+            color: '#1976d2',
+            padding: '4px 12px',
+            borderRadius: 6,
+            fontSize: 14,
+            fontWeight: 600
+          }}>
+            Draft Loaded
+          </div>
+        )}
+        <div style={{ position: 'absolute', right: 24, top: 24, display: 'flex', gap: 8 }}>
           <button
-            onClick={handleSaveDraft}
+            onClick={handleNewDesign}
             style={{
-              padding: "8px 20px",
-              fontSize: 15,
+              padding: "4px 10px",
+              fontSize: 13,
               cursor: "pointer",
               background: "#fff",
               color: "#1976d2",
               border: "none",
-              borderRadius: 6,
+              borderRadius: 4,
               fontWeight: 600
             }}
           >
-            Save Draft
+            New Design
+          </button>
+          <button
+            onClick={handleSaveDraft}
+            style={{
+              padding: "4px 10px",
+              fontSize: 13,
+              cursor: "pointer",
+              background: "#fff",
+              color: "#1976d2",
+              border: "none",
+              borderRadius: 4,
+              fontWeight: 600
+            }}
+          >
+            {currentDraftId ? "Update Draft" : "Save Draft"}
           </button>
           <button
             onClick={() => {
@@ -419,13 +495,13 @@ function WallDesigner({ headingBg, setHeadingBg }) {
               setShowDrafts(!showDrafts);
             }}
             style={{
-              padding: "8px 20px",
-              fontSize: 15,
+              padding: "4px 10px",
+              fontSize: 13,
               cursor: "pointer",
               background: "#fff",
               color: "#1976d2",
               border: "none",
-              borderRadius: 6,
+              borderRadius: 4,
               fontWeight: 600
             }}
           >
@@ -434,13 +510,13 @@ function WallDesigner({ headingBg, setHeadingBg }) {
           <button
             onClick={handleLogout}
             style={{
-              padding: "8px 20px",
-              fontSize: 15,
+              padding: "4px 10px",
+              fontSize: 13,
               cursor: "pointer",
               background: "#fff",
               color: "#1976d2",
               border: "none",
-              borderRadius: 6,
+              borderRadius: 4,
               fontWeight: 600
             }}
           >
@@ -449,17 +525,24 @@ function WallDesigner({ headingBg, setHeadingBg }) {
           <button
             onClick={handleProfile}
             style={{
-              padding: "8px 20px",
-              fontSize: 15,
+              width: 32,
+              height: 32,
+              padding: 0,
+              fontSize: 18,
               cursor: "pointer",
               background: "#fff",
               color: "#1976d2",
               border: "none",
-              borderRadius: 6,
-              fontWeight: 600
+              borderRadius: "50%",
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
+            title="Profile"
           >
-            Profile
+            {/* Use a user icon if you have one, otherwise fallback to 'P' */}
+            <span role="img" aria-label="profile">👤</span>
           </button>
         </div>
       </div>
@@ -499,7 +582,7 @@ function WallDesigner({ headingBg, setHeadingBg }) {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
-                    onClick={() => loadDraft(session.session_data)}
+                    onClick={() => loadDraft(session.session_data, session.id)}
                     style={{
                       padding: '4px 12px',
                       fontSize: 12,
@@ -791,7 +874,6 @@ function WallDesigner({ headingBg, setHeadingBg }) {
                   }}
                   style={{ zIndex: 15, pointerEvents: 'auto', position: 'absolute' }}
                   enableResizing={true}
-                  disableDragging={false}
                 >
                   <div
                     style={{ position: 'relative', width: '100%', height: '100%' }}
@@ -802,7 +884,7 @@ function WallDesigner({ headingBg, setHeadingBg }) {
                       style={{
                         width: '100%',
                         height: '100%',
-                        pointerEvents: 'none',
+                        pointerEvents: 'auto', // <-- changed from 'none' to 'auto'
                         userSelect: 'none',
                         display: 'block',
                         borderRadius: 6
