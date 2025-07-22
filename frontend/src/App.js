@@ -6,6 +6,8 @@ import LandingPage from "./LandingPage";
 import WallDesigner from "./WallDesigner";
 import ProfilePage from "./ProfilePage";
 import AdminPage from "./AdminPage";
+import SharedDraftLoader from "./SharedDraftLoader";
+import SharedDraftViewer from "./SharedDraftViewer";
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
         <Route path="/walldesigner" element={<WallDesigner />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/shared/:token" element={<SharedDraftLoader />} />
+        <Route path="/view/:token" element={<SharedDraftViewer />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>

@@ -90,3 +90,93 @@ input[type=number]::-webkit-outer-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* WallDesigner Modern Styles */
+
+body, #root {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e3f0fc 0%, #f7fafd 100%);
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.wall-designer-main {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(25, 118, 210, 0.10);
+  padding: 32px;
+  margin: 32px auto;
+  max-width: 1400px;
+}
+
+.wall-designer-header {
+  background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%);
+  color: #fff;
+  border-radius: 0 0 18px 18px;
+  padding: 28px 0 20px 0;
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-bottom: 32px;
+  box-shadow: 0 2px 12px rgba(25, 118, 210, 0.08);
+}
+
+.wall-designer-sidebar {
+  background: #f7fafd;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.04);
+  padding: 18px;
+  min-width: 200px;
+  margin-right: 12px;
+}
+
+.wall-designer-wall-container {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(25, 118, 210, 0.10);
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.wall-designer-btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.10);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.wall-designer-btn:hover {
+  background: linear-gradient(90deg, #1565c0 0%, #64b5f6 100%);
+}
+
+.wall-designer-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(25, 118, 210, 0.15);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wall-designer-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 36px 32px;
+  min-width: 340px;
+  box-shadow: 0 4px 32px rgba(25, 118, 210, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+/* Add more as needed for decorations, image frames, etc. */

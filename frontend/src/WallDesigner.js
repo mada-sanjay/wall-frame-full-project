@@ -5,7 +5,7 @@ import "./App.css";
 import { useNavigate } from "react-router-dom";
 
 // Helper to generate unique IDs
-function generateId() {
+function generateId() {  
   return '_' + Math.random().toString(36).substr(2, 9);
 }
 
@@ -61,22 +61,22 @@ function getFrameStyle(frame, thickness = 4, color = '#333') {
   }
 }
 
-function WallDesigner({ headingBg, setHeadingBg }) {
+function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const [wallSize, setWallSize] = useState({ width: 500, height: 300 });
   const [prevWallSize, setPrevWallSize] = useState({ width: 500, height: 300 });
   const [wallImage, setWallImage] = useState(null);
   const [shape, setShape] = useState('square');
   const [uploadedImages, setUploadedImages] = useState([]);
-  const [inputWidth, setInputWidth] = useState(wallSize.width);
-  const [inputHeight, setInputHeight] = useState(wallSize.height);
+  const [inputWidth, setInputWidth] = useState(500);
+  const [inputHeight, setInputHeight] = useState(300);
   const [selectedImageId, setSelectedImageId] = useState(null);
   const [showDefaultWallImages, setShowDefaultWallImages] = useState(false);
   const [showDecorations, setShowDecorations] = useState(false);
   const [decorationOverlays, setDecorationOverlays] = useState([]);
-  const [hoveredDecoration, setHoveredDecoration] = useState(null);
   const [savedSessions, setSavedSessions] = useState([]);
   const [showDrafts, setShowDrafts] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState(null); // Track currently loaded draft
+  const [shareToken, setShareToken] = useState(null);
   const wallRef = useRef(null);
   const defaultWallImages = [
     
@@ -93,22 +93,29 @@ function WallDesigner({ headingBg, setHeadingBg }) {
     
     // Add more local images here as needed
   ];
-  const decorations = [
-    { name: 'frame', url: '/frame_1.png' },
-    { name: 'chair', url: '/chair.png' },
-    { name: 'garland', url: '/garland-removebg-preview.png' },
-    // { name: 'Image', url: '/garland_2.png' },
-    { name: 'garland', url: '/one.png' },
-    { name: 'Image', url: '/two.png' },
-    { name: 'garland', url: '/three.png' }, 
-    { name: 'flower', url: '/flower-removebg-preview.png'},   
+  const [decorations, setDecorations] = useState([]);
 
-    
-   
-    // Add more local images here as needed
-    // Example: { name: 'New Image', url: '/your-new-image.jpg' },
-    // Example: { name: 'Another Image', url: '/another-image.png' },
-  ];
+  useEffect(() => {
+    fetch('/api/admin/decorations/public')
+      .then(res => res.json())
+      .then(data => {
+        const dbDecorations = (data.decorations || []).map(d => ({ name: d.name, url: d.image }));
+        const hardcoded = [
+          { name: 'frame', url: '/frame_1.png' },
+          { name: 'chair', url: '/chair.png' },
+          { name: 'garland', url: '/garland-removebg-preview.png' },
+          // { name: 'Image', url: '/garland_2.png' },
+          { name: 'garland', url: '/one.png' },
+          { name: 'Image', url: '/two.png' },
+          { name: 'garland', url: '/three.png' },
+          { name: 'flower', url: '/flower-removebg-preview.png' },
+        ];
+        setDecorations([...dbDecorations, ...hardcoded]);
+      });
+  }, []);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareType, setShareType] = useState('view');
+  const [generatedLink, setGeneratedLink] = useState('');
 
   const navigate = useNavigate();
 
@@ -116,8 +123,24 @@ function WallDesigner({ headingBg, setHeadingBg }) {
     fetchDrafts();
   }, []);
 
+  useEffect(() => {
+    if (initialDraft) {
+      if (initialDraft.wallSize) setWallSize(initialDraft.wallSize);
+      if (initialDraft.wallImage !== undefined) setWallImage(initialDraft.wallImage);
+      if (initialDraft.shape) setShape(initialDraft.shape);
+      if (initialDraft.uploadedImages) setUploadedImages(initialDraft.uploadedImages);
+      if (initialDraft.decorationOverlays) setDecorationOverlays(initialDraft.decorationOverlays);
+      if (initialDraft.wallSize) {
+        setInputWidth(initialDraft.wallSize.width);
+        setInputHeight(initialDraft.wallSize.height);
+      }
+    }
+  }, [initialDraft]);
+
   const handleLogout = () => {
     localStorage.removeItem("userEmail");
+    localStorage.removeItem("token");
+    localStorage.removeItem("isAdmin");
     navigate("/login");
   };
 
@@ -153,7 +176,6 @@ function WallDesigner({ headingBg, setHeadingBg }) {
       decorationOverlays,
       // Add more state as needed
     };
-    console.log("Saving draft with data:", session_data);
     
     try {
       let res;
@@ -175,7 +197,6 @@ function WallDesigner({ headingBg, setHeadingBg }) {
       }
       
       const data = await res.json();
-      console.log("Save response:", data);
       if (res.ok) {
         if (currentDraftId) {
           alert("Draft updated successfully!");
@@ -186,13 +207,14 @@ function WallDesigner({ headingBg, setHeadingBg }) {
             setCurrentDraftId(data.sessionId);
           }
         }
+        // Set share token if available
+        if (data.share_token) setShareToken(data.share_token);
         // Refresh the drafts list
         fetchDrafts();
       } else {
         alert(data.message || "Failed to save draft.");
       }
     } catch (err) {
-      console.error("Network error while saving draft:", err);
       alert("Network error while saving draft.");
     }
   };
@@ -201,13 +223,10 @@ function WallDesigner({ headingBg, setHeadingBg }) {
     const user_email = localStorage.getItem("userEmail");
     if (!user_email) return;
     try {
-      console.log("Fetching drafts for:", user_email);
       const res = await fetch(`/api/sessions?user_email=${encodeURIComponent(user_email)}`, {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
       });
-      console.log("Response status:", res.status);
       const data = await res.json();
-      console.log("Fetched data:", data);
       if (res.ok) {
         setSavedSessions(data.sessions);
       } else {
@@ -218,28 +237,23 @@ function WallDesigner({ headingBg, setHeadingBg }) {
     }
   };
 
-  const loadDraft = (sessionData, sessionId) => {
+  const loadDraft = (session) => {
     try {
-      console.log("Loading draft data:", sessionData);
-      // sessionData is already a JSON string from the database
-      const data = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
-      console.log("Parsed data:", data);
+      const data = typeof session.session_data === 'string' ? JSON.parse(session.session_data) : session.session_data;
       
-      // Set the state with the loaded data
       if (data.wallSize) setWallSize(data.wallSize);
       if (data.wallImage !== undefined) setWallImage(data.wallImage);
       if (data.shape) setShape(data.shape);
       if (data.uploadedImages) setUploadedImages(data.uploadedImages);
       if (data.decorationOverlays) setDecorationOverlays(data.decorationOverlays);
       
-      // Set the current draft ID so future saves will update this draft
-      setCurrentDraftId(sessionId);
+      setCurrentDraftId(session.id);
+      setShareToken(session.share_token || null); // <-- ensure shareToken is set when loading a draft
+      setGeneratedLink(''); // Reset generatedLink when loading a draft
       
       setShowDrafts(false);
       alert("Draft loaded successfully!");
     } catch (err) {
-      console.error("Failed to load draft:", err);
-      console.error("Session data that failed:", sessionData);
       alert("Failed to load draft. Check console for details.");
     }
   };
@@ -427,6 +441,39 @@ function WallDesigner({ headingBg, setHeadingBg }) {
     link.click();
   };
 
+  // Share handler
+  const handleShare = () => {
+    if (!shareToken && !currentDraftId) {
+      alert('Please save your draft first!');
+      return;
+    }
+    setShowShareModal(true);
+    setShareType('view');
+    setGeneratedLink('');
+  };
+  const handleGenerateLink = () => {
+    if (!shareToken) return;
+    const url = shareType === 'view'
+      ? `${window.location.origin}/view/${shareToken}`
+      : `${window.location.origin}/shared/${shareToken}`;
+    setGeneratedLink(url);
+  };
+  const handleCopyLink = () => {
+    if (generatedLink) {
+      navigator.clipboard.writeText(generatedLink);
+      setShowShareModal(false);
+    }
+  };
+  const handleCopyShareLink = (type) => {
+    if (!shareToken) return;
+    const url = type === 'view'
+      ? `${window.location.origin}/view/${shareToken}`
+      : `${window.location.origin}/shared/${shareToken}`;
+    navigator.clipboard.writeText(url);
+    alert(`${type === 'view' ? 'View-only' : 'Editable'} link copied to clipboard!\n\n${url}`);
+    setShowShareModal(false);
+  };
+
   return (
     <div>
       <div style={{
@@ -601,7 +648,7 @@ function WallDesigner({ headingBg, setHeadingBg }) {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
-                    onClick={() => loadDraft(session.session_data, session.id)}
+                    onClick={() => loadDraft(session)}
                     style={{
                       padding: '4px 12px',
                       fontSize: 12,
@@ -918,6 +965,9 @@ function WallDesigner({ headingBg, setHeadingBg }) {
           <button className="upload-btn" style={{ fontSize: 16, padding: '10px 32px', marginTop: 24 }} onClick={handleDownload}>
             Download
           </button>
+          <button className="upload-btn" style={{ fontSize: 16, padding: '10px 32px', marginTop: 12 }} onClick={handleShare}>
+            Share
+          </button>
         </div>
         {/* Right Side Controls: Two separate containers stacked vertically */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -996,7 +1046,7 @@ function WallDesigner({ headingBg, setHeadingBg }) {
             {/* Upload Images */}
             <label className="upload-label upload-btn" style={{ justifyContent: 'center' }}>
               <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleImagesUpload} />
-              Upload Images
+              ⬆️ Upload Images
             </label>
           </div>
           {/* Third container: Frame Selector for Uploaded Images */}
@@ -1091,6 +1141,32 @@ function WallDesigner({ headingBg, setHeadingBg }) {
           </div>
         </div>
       </div>
+      {showShareModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 32, minWidth: 320, boxShadow: '0 4px 24px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            <h3 style={{ marginBottom: 16 }}>Share this draft</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, width: '100%' }}>
+              <label style={{ fontWeight: 500, fontSize: 15 }}>
+                <input type="radio" name="shareType" value="view" checked={shareType === 'view'} onChange={() => setShareType('view')} /> View Only
+              </label>
+              <label style={{ fontWeight: 500, fontSize: 15 }}>
+                <input type="radio" name="shareType" value="edit" checked={shareType === 'edit'} onChange={() => setShareType('edit')} /> Editable
+              </label>
+            </div>
+            <button onClick={handleGenerateLink} style={{ padding: '8px 20px', borderRadius: 6, border: '1px solid #1976d2', background: '#1976d2', color: '#fff', fontWeight: 600, fontSize: 15, margin: '16px 0 0 0' }}>Generate Link</button>
+            {generatedLink && (
+              <div style={{ marginTop: 16, width: '100%', textAlign: 'center' }}>
+                <div style={{ wordBreak: 'break-all', color: '#1976d2', fontSize: 14, marginBottom: 8 }}>{generatedLink}</div>
+                <button onClick={handleCopyLink} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: '#e3f0fc', color: '#1976d2', fontWeight: 600, fontSize: 14 }}>Copy Link</button>
+              </div>
+            )}
+            <button onClick={() => setShowShareModal(false)} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: '#eee', color: '#333', fontWeight: 500, fontSize: 14, marginTop: 12 }}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

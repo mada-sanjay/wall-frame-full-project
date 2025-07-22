@@ -4,6 +4,7 @@ const db = require('../db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'your_secret_key'; // Use a strong secret in production
+const { v4: uuidv4 } = require('uuid');
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -92,14 +93,15 @@ router.post('/save-session', authenticateToken, (req, res) => {
   if (!user_email || !session_data) {
     return res.status(400).json({ message: 'Missing user_email or session_data' });
   }
+  const shareToken = uuidv4();
   db.query(
-    'INSERT INTO sessions (user_email, session_data) VALUES (?, ?)',
-    [user_email, JSON.stringify(session_data)],
+    'INSERT INTO sessions (user_email, session_data, share_token) VALUES (?, ?, ?)',
+    [user_email, JSON.stringify(session_data), shareToken],
     (err, results) => {
       if (err) {
         return res.status(500).json({ message: 'Database error', error: err });
       }
-      res.json({ message: 'Session saved successfully', sessionId: results.insertId });
+      res.json({ message: 'Session saved successfully', sessionId: results.insertId, share_token: shareToken });
     }
   );
 });
@@ -120,7 +122,11 @@ router.put('/update-session/:id', authenticateToken, (req, res) => {
       if (results.affectedRows === 0) {
         return res.status(404).json({ message: 'Session not found or unauthorized' });
       }
-      res.json({ message: 'Session updated successfully' });
+      // Fetch share_token to return
+      db.query('SELECT share_token FROM sessions WHERE id = ?', [id], (err2, rows) => {
+        if (err2 || !rows.length) return res.json({ message: 'Session updated successfully' });
+        res.json({ message: 'Session updated successfully', share_token: rows[0].share_token });
+      });
     }
   );
 });
@@ -131,7 +137,7 @@ router.get('/sessions', authenticateToken, (req, res) => {
     return res.status(400).json({ message: 'Missing user_email' });
   }
   db.query(
-    'SELECT id, session_data, created_at FROM sessions WHERE user_email = ? ORDER BY created_at DESC',
+    'SELECT id, session_data, created_at, share_token FROM sessions WHERE user_email = ? ORDER BY created_at DESC',
     [user_email],
     (err, results) => {
       if (err) {
@@ -218,7 +224,7 @@ function requireAdmin(req, res, next) {
 // --- ADMIN ROUTES ---
 // List all users
 router.get('/admin/users', authenticateToken, requireAdmin, (req, res) => {
-  db.query('SELECT id, email, isAdmin FROM users', (err, results) => {
+  db.query('SELECT id, email, isAdmin, created_at FROM users', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     res.json({ users: results });
   });
@@ -271,6 +277,16 @@ router.get('/admin/stats', authenticateToken, requireAdmin, async (req, res) => 
   } catch (err) {
     res.status(500).json({ message: 'Error fetching stats', error: err });
   }
+});
+
+// Add endpoint to fetch by share_token
+router.get('/shared/:token', (req, res) => {
+  const token = req.params.token;
+  db.query('SELECT * FROM sessions WHERE share_token = ?', [token], (err, results) => {
+    if (err) return res.status(500).json({ error: "Error fetching design" });
+    if (!results.length) return res.status(404).json({ error: "Design not found" });
+    res.status(200).json(results[0]);
+  });
 });
 
 module.exports = router; 
