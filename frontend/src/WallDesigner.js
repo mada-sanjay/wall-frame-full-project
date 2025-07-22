@@ -94,6 +94,10 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
     // Add more local images here as needed
   ];
   const [decorations, setDecorations] = useState([]);
+  const [plan, setPlan] = useState("basic");
+  const [draftCount, setDraftCount] = useState(0);
+  const [draftLimit, setDraftLimit] = useState(3);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     fetch('/api/admin/decorations/public')
@@ -104,7 +108,6 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           { name: 'frame', url: '/frame_1.png' },
           { name: 'chair', url: '/chair.png' },
           { name: 'garland', url: '/garland-removebg-preview.png' },
-          // { name: 'Image', url: '/garland_2.png' },
           { name: 'garland', url: '/one.png' },
           { name: 'Image', url: '/two.png' },
           { name: 'garland', url: '/three.png' },
@@ -112,6 +115,26 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         ];
         setDecorations([...dbDecorations, ...hardcoded]);
       });
+    // Fetch plan and draft count from backend
+    const token = localStorage.getItem("token");
+    fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => {
+        const userPlan = data.user?.plan || "basic";
+        setPlan(userPlan);
+        let limit = 3;
+        if (userPlan === "pro") limit = 6;
+        if (userPlan === "pro_max") limit = Infinity;
+        setDraftLimit(limit);
+      });
+    const user_email = localStorage.getItem("userEmail");
+    if (user_email) {
+      fetch(`/api/sessions?user_email=${encodeURIComponent(user_email)}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => setDraftCount((data.sessions || []).length));
+    }
   }, []);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareType, setShareType] = useState('view');
@@ -162,9 +185,14 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   };
 
   const handleSaveDraft = async () => {
+    setSaveError("");
     const user_email = localStorage.getItem("userEmail");
     if (!user_email) {
       alert("You must be logged in to save a draft.");
+      return;
+    }
+    if (draftLimit !== Infinity && draftCount >= draftLimit && !currentDraftId) {
+      setSaveError(`Draft limit reached for your plan (${plan}). Upgrade your plan to save more drafts.`);
       return;
     }
     // Gather session state
@@ -211,11 +239,13 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         if (data.share_token) setShareToken(data.share_token);
         // Refresh the drafts list
         fetchDrafts();
+        // Update draft count after save
+        setDraftCount(prev => prev + (currentDraftId ? 0 : 1));
       } else {
-        alert(data.message || "Failed to save draft.");
+        setSaveError(data.message || "Failed to save draft.");
       }
     } catch (err) {
-      alert("Network error while saving draft.");
+      setSaveError("Network error while saving draft.");
     }
   };
 
@@ -283,9 +313,11 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         }
         // Refresh the drafts list
         fetchDrafts();
+        // Update draft count after delete
+        setDraftCount(prev => prev - 1);
       } else {
         alert(data.message || "Failed to delete draft.");
-      }
+      }             
     } catch (err) {
       console.error("Network error while deleting draft:", err);
       alert("Network error while deleting draft.");
@@ -476,6 +508,12 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
 
   return (
     <div>
+      {/* Show plan and draft usage at the top */}
+      <div style={{ background: '#e3f0fc', padding: 12, borderRadius: 8, margin: '16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ color: '#1976d2', fontWeight: 600 }}>Plan: {plan === 'pro_max' ? 'Pro Max' : plan.charAt(0).toUpperCase() + plan.slice(1)}</span>
+        <span style={{ color: '#1976d2' }}>Drafts used: {draftCount} / {draftLimit === Infinity ? 'Unlimited' : draftLimit}</span>
+      </div>
+      {saveError && <div style={{ color: 'red', marginBottom: 12 }}>{saveError}</div>}
       <div style={{
         width: '100%',
         background: '#1976d2',

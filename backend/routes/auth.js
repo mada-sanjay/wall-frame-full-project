@@ -65,7 +65,7 @@ router.post('/login', (req, res) => {
         if (isMatch) {
           // Success: login and return token
           const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
-          return res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin } });
+          return res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin, plan: user.plan } });
         } else {
           // Fallback: check plain text (for legacy users)
           if (password === user.password) {
@@ -77,7 +77,7 @@ router.post('/login', (req, res) => {
             });
             // Success: login and return token
             const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
-            return res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin } });
+            return res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin, plan: user.plan } });
           } else {
             return res.status(400).json({ message: 'Invalid credentials' });
           }
@@ -93,17 +93,36 @@ router.post('/save-session', authenticateToken, (req, res) => {
   if (!user_email || !session_data) {
     return res.status(400).json({ message: 'Missing user_email or session_data' });
   }
-  const shareToken = uuidv4();
-  db.query(
-    'INSERT INTO sessions (user_email, session_data, share_token) VALUES (?, ?, ?)',
-    [user_email, JSON.stringify(session_data), shareToken],
-    (err, results) => {
-      if (err) {
-        return res.status(500).json({ message: 'Database error', error: err });
-      }
-      res.json({ message: 'Session saved successfully', sessionId: results.insertId, share_token: shareToken });
+  // Enforce draft limits based on user plan
+  db.query('SELECT plan FROM users WHERE email = ?', [user_email], (err, userResults) => {
+    if (err || !userResults.length) {
+      return res.status(500).json({ message: 'User not found or database error' });
     }
-  );
+    const plan = userResults[0].plan || 'basic';
+    let draftLimit = 3;
+    if (plan === 'pro') draftLimit = 6;
+    if (plan === 'pro_max') draftLimit = Infinity;
+    db.query('SELECT COUNT(*) as draftCount FROM sessions WHERE user_email = ?', [user_email], (err2, countResults) => {
+      if (err2) {
+        return res.status(500).json({ message: 'Database error', error: err2 });
+      }
+      const draftCount = countResults[0].draftCount;
+      if (draftCount >= draftLimit) {
+        return res.status(403).json({ message: `Draft limit reached for your plan (${plan}). Upgrade your plan to save more drafts.` });
+      }
+      const shareToken = uuidv4();
+      db.query(
+        'INSERT INTO sessions (user_email, session_data, share_token) VALUES (?, ?, ?)',
+        [user_email, JSON.stringify(session_data), shareToken],
+        (err, results) => {
+          if (err) {
+            return res.status(500).json({ message: 'Database error', error: err });
+          }
+          res.json({ message: 'Session saved successfully', sessionId: results.insertId, share_token: shareToken });
+        }
+      );
+    });
+  });
 });
 
 router.put('/update-session/:id', authenticateToken, (req, res) => {
@@ -224,7 +243,7 @@ function requireAdmin(req, res, next) {
 // --- ADMIN ROUTES ---
 // List all users
 router.get('/admin/users', authenticateToken, requireAdmin, (req, res) => {
-  db.query('SELECT id, email, isAdmin, created_at FROM users', (err, results) => {
+  db.query('SELECT id, email, isAdmin, plan, created_at FROM users', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     res.json({ users: results });
   });
@@ -236,6 +255,18 @@ router.put('/admin/users/:id/promote', authenticateToken, requireAdmin, (req, re
   db.query('UPDATE users SET isAdmin = ? WHERE id = ?', [isAdmin ? 1 : 0, id], (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     res.json({ message: 'User updated' });
+  });
+});
+// Update user plan (admin only)
+router.put('/admin/users/:id/plan', authenticateToken, requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const { plan } = req.body;
+  if (!['basic', 'pro', 'pro_max'].includes(plan)) {
+    return res.status(400).json({ message: 'Invalid plan' });
+  }
+  db.query('UPDATE users SET plan = ? WHERE id = ?', [plan, id], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error', error: err });
+    res.json({ message: 'User plan updated' });
   });
 });
 // Delete user
@@ -286,6 +317,32 @@ router.get('/shared/:token', (req, res) => {
     if (err) return res.status(500).json({ error: "Error fetching design" });
     if (!results.length) return res.status(404).json({ error: "Design not found" });
     res.status(200).json(results[0]);
+  });
+});
+
+// User plan upgrade endpoint (payment logic placeholder)
+router.post('/upgrade-plan', authenticateToken, (req, res) => {
+  const { plan } = req.body;
+  const userId = req.user && req.user.id;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  if (!['pro', 'pro_max'].includes(plan)) {
+    return res.status(400).json({ message: 'Invalid plan to upgrade' });
+  }
+  // Here you would integrate payment logic (e.g., Stripe)
+  // For now, just update the plan
+  db.query('UPDATE users SET plan = ? WHERE id = ?', [plan, userId], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error', error: err });
+    res.json({ message: `Plan upgraded to ${plan}` });
+  });
+});
+
+// Get current user info
+router.get('/me', authenticateToken, (req, res) => {
+  const userId = req.user && req.user.id;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  db.query('SELECT id, email, isAdmin, plan FROM users WHERE id = ?', [userId], (err, results) => {
+    if (err || !results.length) return res.status(500).json({ message: 'Database error' });
+    res.json({ user: results[0] });
   });
 });
 

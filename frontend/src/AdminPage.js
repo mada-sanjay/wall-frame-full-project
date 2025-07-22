@@ -166,21 +166,53 @@ function AdminPage() {
       });
   };
 
+  // Add handleChangePlan function
+  function handleChangePlan(userId, newPlan) {
+    const token = localStorage.getItem("token");
+    fetch(`/api/admin/users/${userId}/plan`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ plan: newPlan })
+    })
+      .then(r => r.json())
+      .then(() => {
+        setUsers(users => users.map(u => u.id === userId ? { ...u, plan: newPlan } : u));
+      });
+  }
+
   if (loading) return <div style={{ padding: 40, fontSize: 20 }}>Loading admin data...</div>;
   if (error) return <div style={{ padding: 40, color: 'red' }}>{error}</div>;
 
   return (
-    <div style={{ display: 'flex', maxWidth: 1200, margin: '40px auto', background: '#f7fafd', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', minHeight: 600 }}>
+    <div style={{
+      display: 'flex',
+      maxWidth: 1200,
+      margin: '40px auto',
+      background: '#f0f1f5',
+      borderRadius: 16,
+      boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+      minHeight: 600,
+      color: '#222'
+    }}>
       {/* Sidebar */}
-      <div style={{ width: 220, background: '#e3f0fc', borderRadius: '16px 0 0 16px', padding: '32px 0', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
-        <h2 style={{ textAlign: 'center', color: '#1976d2', marginBottom: 24 }}>Admin Menu</h2>
+      <div style={{
+        width: 220,
+        background: '#d1d5db',
+        borderRadius: '16px 0 0 16px',
+        padding: '32px 0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: 8
+      }}>
+        <h2 style={{ textAlign: 'center', color: '#333', marginBottom: 24 }}>Admin Menu</h2>
         {SECTIONS.map(s => (
           <button
             key={s.key}
             onClick={() => setSection(s.key)}
             style={{
-              background: section === s.key ? '#1976d2' : 'transparent',
-              color: section === s.key ? '#fff' : '#1976d2',
+              background: section === s.key ? '#e0e7ef' : 'transparent',
+              color: section === s.key ? '#222' : '#555',
               border: 'none',
               borderRadius: 8,
               padding: '12px 24px',
@@ -197,18 +229,143 @@ function AdminPage() {
       </div>
       {/* Main Content */}
       <div style={{ flex: 1, padding: 40 }}>
-        <h1 style={{ color: '#1976d2', marginBottom: 32 }}>Admin Dashboard</h1>
+        <h1 style={{ color: '#333', marginBottom: 32 }}>Admin Dashboard</h1>
         {section === "analytics" && (
           <div>
-            <h2 style={{ color: '#1976d2', fontSize: 22, marginBottom: 16 }}>Analytics</h2>
+            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Analytics</h2>
             <div style={{ display: 'flex', gap: 32, marginBottom: 32 }}>
-              <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: 24, minWidth: 180, textAlign: 'center' }}>
-                <div style={{ fontSize: 18, fontWeight: 600, color: '#1976d2' }}>Users</div>
+              <div style={{ background: '#e0e7ef', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', padding: 24, minWidth: 180, textAlign: 'center', color: '#222' }}>
+                <div style={{ fontSize: 18, fontWeight: 600, color: '#555' }}>Users</div>
                 <div style={{ fontSize: 32, fontWeight: 700 }}>{stats.userCount}</div>
               </div>
-              <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: 24, minWidth: 180, textAlign: 'center' }}>
-                <div style={{ fontSize: 18, fontWeight: 600, color: '#1976d2' }}>Drafts</div>
+              <div style={{ background: '#e0e7ef', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', padding: 24, minWidth: 180, textAlign: 'center', color: '#222' }}>
+                <div style={{ fontSize: 18, fontWeight: 600, color: '#555' }}>Drafts</div>
                 <div style={{ fontSize: 32, fontWeight: 700 }}>{stats.draftCount}</div>
+              </div>
+            </div>
+            {/* Plan Details Section - Modern Pricing Cards (Neutral Theme) */}
+            <div style={{
+              display: 'flex',
+              gap: 32,
+              marginBottom: 32,
+              justifyContent: 'center'
+            }}>
+              {/* Basic Plan Card */}
+              <div style={{
+                flex: 1,
+                background: 'linear-gradient(135deg, #e0e7ef 0%, #f5f7fa 100%)',
+                borderRadius: 20,
+                boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+                padding: 32,
+                minWidth: 260,
+                color: '#222',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}>
+                <h2 style={{ fontWeight: 700, letterSpacing: 1 }}>BASIC</h2>
+                <div style={{
+                  fontSize: 36,
+                  fontWeight: 800,
+                  margin: '16px 0'
+                }}>$0</div>
+                <div style={{ marginBottom: 24, fontSize: 16, color: '#555' }}>Per Month</div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#222', fontSize: 16, textAlign: 'left' }}>
+                  <li>✔ Save up to 3 drafts</li>
+                  <li>✔ Access to basic features</li>
+                  <li>✖ No advanced analytics</li>
+                  <li>✖ No priority support</li>
+                </ul>
+                <button style={{
+                  marginTop: 24,
+                  background: '#e0e7ef',
+                  color: '#222',
+                  border: 'none',
+                  borderRadius: 24,
+                  padding: '10px 32px',
+                  fontWeight: 700,
+                  fontSize: 16,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                }}>BUY NOW</button>
+              </div>
+              {/* Pro Plan Card */}
+              <div style={{
+                flex: 1,
+                background: 'linear-gradient(135deg, #d1e7dd 0%, #e0e7ef 100%)',
+                borderRadius: 20,
+                boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+                padding: 32,
+                minWidth: 260,
+                color: '#222',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}>
+                <h2 style={{ fontWeight: 700, letterSpacing: 1 }}>PRO</h2>
+                <div style={{
+                  fontSize: 36,
+                  fontWeight: 800,
+                  margin: '16px 0'
+                }}>$10</div>
+                <div style={{ marginBottom: 24, fontSize: 16, color: '#555' }}>Per Month</div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#222', fontSize: 16, textAlign: 'left' }}>
+                  <li>✔ Save up to 6 drafts</li>
+                  <li>✔ Access to all features</li>
+                  <li>✔ Basic analytics</li>
+                  <li>✖ No priority support</li>
+                </ul>
+                <button style={{
+                  marginTop: 24,
+                  background: '#d1e7dd',
+                  color: '#222',
+                  border: 'none',
+                  borderRadius: 24,
+                  padding: '10px 32px',
+                  fontWeight: 700,
+                  fontSize: 16,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                }}>BUY NOW</button>
+              </div>
+              {/* Pro Max Plan Card */}
+              <div style={{
+                flex: 1,
+                background: 'linear-gradient(135deg, #f5e6fa 0%, #e0e7ef 100%)',
+                borderRadius: 20,
+                boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+                padding: 32,
+                minWidth: 260,
+                color: '#222',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}>
+                <h2 style={{ fontWeight: 700, letterSpacing: 1 }}>PRO MAX</h2>
+                <div style={{
+                  fontSize: 36,
+                  fontWeight: 800,
+                  margin: '16px 0'
+                }}>$30</div>
+                <div style={{ marginBottom: 24, fontSize: 16, color: '#555' }}>Per Month</div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#222', fontSize: 16, textAlign: 'left' }}>
+                  <li>✔ Unlimited drafts</li>
+                  <li>✔ All features unlocked</li>
+                  <li>✔ Advanced analytics</li>
+                  <li>✔ Priority support</li>
+                </ul>
+                <button style={{
+                  marginTop: 24,
+                  background: '#f5e6fa',
+                  color: '#222',
+                  border: 'none',
+                  borderRadius: 24,
+                  padding: '10px 32px',
+                  fontWeight: 700,
+                  fontSize: 16,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                }}>BUY NOW</button>
               </div>
             </div>
             {/* Add more analytics here */}
@@ -217,24 +374,36 @@ function AdminPage() {
         )}
         {section === "users" && (
           <section>
-            <h2 style={{ color: '#1976d2', fontSize: 22, marginBottom: 16 }}>User Management</h2>
-            <table style={{ width: '100%', background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', borderCollapse: 'collapse', marginBottom: 8 }}>
+            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>User Management</h2>
+            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse', marginBottom: 8 }}>
               <thead>
-                <tr style={{ background: '#e3f0fc' }}>
-                  <th style={{ padding: 10, borderRadius: 8, textAlign: 'left' }}>Email</th>
-                  <th style={{ padding: 10, borderRadius: 8 }}>Admin</th>
-                  <th style={{ padding: 10, borderRadius: 8 }}>Created At</th>
-                  <th style={{ padding: 10, borderRadius: 8 }}>Actions</th>
+                <tr style={{ background: '#e0e7ef' }}>
+                  <th style={{ padding: 10, borderRadius: 8, textAlign: 'left', color: '#333' }}>Email</th>
+                  <th style={{ padding: 10, borderRadius: 8, color: '#333' }}>Admin</th>
+                  <th style={{ padding: 10, borderRadius: 8, color: '#333' }}>Plan</th>
+                  <th style={{ padding: 10, borderRadius: 8, color: '#333' }}>Created At</th>
+                  <th style={{ padding: 10, borderRadius: 8, color: '#333' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map(user => (
-                  <tr key={user.id} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: 10 }}>{user.email}</td>
-                    <td style={{ padding: 10, textAlign: 'center' }}>{user.isAdmin ? '✔️' : ''}</td>
+                  <tr key={user.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
+                    <td style={{ padding: 10, color: '#222' }}>{user.email}</td>
+                    <td style={{ padding: 10, textAlign: 'center' }}>{user.isAdmin ? '\u2714\ufe0f' : ''}</td>
+                    <td style={{ padding: 10, textAlign: 'center' }}>
+                      <select
+                        value={user.plan || 'basic'}
+                        onChange={e => handleChangePlan(user.id, e.target.value)}
+                        style={{ padding: '4px 8px', borderRadius: 4, background: '#e0e7ef', color: '#222', border: '1px solid #555' }}
+                      >
+                        <option value="basic">Basic</option>
+                        <option value="pro">Pro</option>
+                        <option value="pro_max">Pro Max</option>
+                      </select>
+                    </td>
                     <td style={{ padding: 10 }}>{user.created_at ? new Date(user.created_at).toLocaleDateString() : ''}</td>
                     <td style={{ padding: 10, textAlign: 'center' }}>
-                      <button onClick={() => handlePromote(user.id, user.isAdmin)} style={{ marginRight: 8, padding: '4px 10px', borderRadius: 4, border: 'none', background: user.isAdmin ? '#bbb' : '#1976d2', color: '#fff', cursor: 'pointer' }}>
+                      <button onClick={() => handlePromote(user.id, user.isAdmin)} style={{ marginRight: 8, padding: '4px 10px', borderRadius: 4, border: 'none', background: user.isAdmin ? '#555' : '#43cea2', color: '#fff', cursor: 'pointer' }}>
                         {user.isAdmin ? 'Demote' : 'Promote'}
                       </button>
                       <button onClick={() => handleDeleteUser(user.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Delete</button>
@@ -247,10 +416,10 @@ function AdminPage() {
         )}
         {section === "drafts" && (
           <section>
-            <h2 style={{ color: '#1976d2', fontSize: 22, marginBottom: 16 }}>Draft Management</h2>
-            <table style={{ width: '100%', background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', borderCollapse: 'collapse' }}>
+            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Draft Management</h2>
+            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#e3f0fc' }}>
+                <tr style={{ background: '#e0e7ef' }}>
                   <th style={{ padding: 10, borderRadius: 8, textAlign: 'left' }}>User Email</th>
                   <th style={{ padding: 10, borderRadius: 8 }}>Created At</th>
                   <th style={{ padding: 10, borderRadius: 8 }}>Actions</th>
@@ -258,7 +427,7 @@ function AdminPage() {
               </thead>
               <tbody>
                 {drafts.map(draft => (
-                  <tr key={draft.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <tr key={draft.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
                     <td style={{ padding: 10 }}>{draft.user_email}</td>
                     <td style={{ padding: 10 }}>{new Date(draft.created_at).toLocaleDateString()}</td>
                     <td style={{ padding: 10, textAlign: 'center' }}>
@@ -272,11 +441,11 @@ function AdminPage() {
         )}
         {section === "decorations" && (
           <section>
-            <h2 style={{ color: '#1976d2', fontSize: 22, marginBottom: 16 }}>Decoration Management</h2>
-            <button onClick={() => setShowAddDecoration(true)} style={{ marginBottom: 16, padding: '8px 20px', borderRadius: 6, background: '#1976d2', color: '#fff', border: 'none', fontWeight: 600 }}>Add New Decoration</button>
+            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Decoration Management</h2>
+            <button onClick={() => setShowAddDecoration(true)} style={{ marginBottom: 16, padding: '8px 20px', borderRadius: 6, background: '#43cea2', color: '#181a20', border: 'none', fontWeight: 600 }}>Add New Decoration</button>
             {/* Add Decoration Modal/Form */}
             {showAddDecoration && (
-              <div style={{ background: '#fff', borderRadius: 8, padding: 24, marginBottom: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.03)' }}>
+              <div style={{ background: '#e0e7ef', borderRadius: 8, padding: 24, marginBottom: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}>
                 <h3 style={{ marginBottom: 12 }}>Add Decoration</h3>
                 <form onSubmit={handleAddDecoration}>
                   <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
@@ -286,7 +455,7 @@ function AdminPage() {
                       value={newDecoration.name}
                       onChange={e => setNewDecoration(d => ({ ...d, name: e.target.value }))}
                       required
-                      style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #bbb' }}
+                      style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
                     />
                     <input
                       type="text"
@@ -294,7 +463,7 @@ function AdminPage() {
                       value={newDecoration.category}
                       onChange={e => setNewDecoration(d => ({ ...d, category: e.target.value }))}
                       required
-                      style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #bbb' }}
+                      style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
                     />
                     <input
                       type="text"
@@ -302,18 +471,18 @@ function AdminPage() {
                       value={newDecoration.image}
                       onChange={e => setNewDecoration(d => ({ ...d, image: e.target.value }))}
                       required
-                      style={{ flex: 2, padding: 8, borderRadius: 4, border: '1px solid #bbb' }}
+                      style={{ flex: 2, padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
                     />
                   </div>
-                  <button type="submit" style={{ padding: '8px 24px', borderRadius: 4, background: '#1976d2', color: '#fff', border: 'none', fontWeight: 600 }}>Add</button>
-                  <button type="button" onClick={() => setShowAddDecoration(false)} style={{ marginLeft: 12, padding: '8px 24px', borderRadius: 4, background: '#eee', color: '#333', border: 'none', fontWeight: 600 }}>Cancel</button>
+                  <button type="submit" style={{ padding: '8px 24px', borderRadius: 4, background: '#43cea2', color: '#181a20', border: 'none', fontWeight: 600 }}>Add</button>
+                  <button type="button" onClick={() => setShowAddDecoration(false)} style={{ marginLeft: 12, padding: '8px 24px', borderRadius: 4, background: '#35374a', color: '#b0b3c6', border: 'none', fontWeight: 600 }}>Cancel</button>
                 </form>
               </div>
             )}
-            <h3>All Decorations</h3>
-            <table style={{ width: '100%', background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', borderCollapse: 'collapse', marginBottom: 24 }}>
+            <h3 style={{ color: '#333' }}>All Decorations</h3>
+            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse', marginBottom: 24 }}>
               <thead>
-                <tr style={{ background: '#e3f0fc' }}>
+                <tr style={{ background: '#e0e7ef' }}>
                   <th style={{ padding: 10 }}>Image</th>
                   <th style={{ padding: 10 }}>Name</th>
                   <th style={{ padding: 10 }}>Category</th>
@@ -323,7 +492,7 @@ function AdminPage() {
               </thead>
               <tbody>
                 {decorations.map(dec => (
-                  <tr key={dec.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <tr key={dec.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
                     <td style={{ padding: 10 }}><img src={dec.image} alt={dec.name} width={40} /></td>
                     <td style={{ padding: 10 }}>{dec.name}</td>
                     <td style={{ padding: 10 }}>{dec.category}</td>
@@ -335,10 +504,10 @@ function AdminPage() {
                 ))}
               </tbody>
             </table>
-            <h3>Pending Approval</h3>
-            <table style={{ width: '100%', background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', borderCollapse: 'collapse' }}>
+            <h3 style={{ color: '#333' }}>Pending Approval</h3>
+            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#e3f0fc' }}>
+                <tr style={{ background: '#e0e7ef' }}>
                   <th style={{ padding: 10 }}>Image</th>
                   <th style={{ padding: 10 }}>Name</th>
                   <th style={{ padding: 10 }}>Category</th>
@@ -347,7 +516,7 @@ function AdminPage() {
               </thead>
               <tbody>
                 {pendingDecorations.map(dec => (
-                  <tr key={dec.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <tr key={dec.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
                     <td style={{ padding: 10 }}><img src={dec.image} alt={dec.name} width={40} /></td>
                     <td style={{ padding: 10 }}>{dec.name}</td>
                     <td style={{ padding: 10 }}>{dec.category}</td>
@@ -363,25 +532,25 @@ function AdminPage() {
         )}
         {section === "moderation" && (
           <section>
-            <h2 style={{ color: '#1976d2', fontSize: 22, marginBottom: 16 }}>Moderation</h2>
+            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Moderation</h2>
             <div style={{ color: '#888', fontSize: 15 }}>Feature coming soon: Review flagged content, ban words/images.</div>
           </section>
         )}
         {section === "settings" && (
           <section>
-            <h2 style={{ color: '#1976d2', fontSize: 22, marginBottom: 16 }}>Settings</h2>
+            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Settings</h2>
             <div style={{ color: '#888', fontSize: 15 }}>Feature coming soon: App configuration, maintenance mode, announcements.</div>
           </section>
         )}
         {section === "feedback" && (
           <section>
-            <h2 style={{ color: '#1976d2', fontSize: 22, marginBottom: 16 }}>Feedback</h2>
+            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Feedback</h2>
             <div style={{ color: '#888', fontSize: 15 }}>Feature coming soon: View user feedback and respond.</div>
           </section>
         )}
         {section === "alerts" && (
           <section>
-            <h2 style={{ color: '#1976d2', fontSize: 22, marginBottom: 16 }}>Alerts / Notifications</h2>
+            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Alerts / Notifications</h2>
             {/* Create Alert Form */}
             <form
               onSubmit={e => {
@@ -392,7 +561,7 @@ function AdminPage() {
                 ]);
                 setNewAlert({ title: "", message: "", type: "info", audience: "All" });
               }}
-              style={{ background: '#fff', borderRadius: 8, padding: 24, marginBottom: 32, boxShadow: '0 1px 4px rgba(0,0,0,0.03)' }}
+              style={{ background: '#e0e7ef', borderRadius: 8, padding: 24, marginBottom: 32, boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}
             >
               <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
                 <input
@@ -401,12 +570,12 @@ function AdminPage() {
                   value={newAlert.title}
                   onChange={e => setNewAlert(a => ({ ...a, title: e.target.value }))}
                   required
-                  style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #bbb' }}
+                  style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
                 />
                 <select
                   value={newAlert.type}
                   onChange={e => setNewAlert(a => ({ ...a, type: e.target.value }))}
-                  style={{ padding: 8, borderRadius: 4, border: '1px solid #bbb' }}
+                  style={{ padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
                 >
                   <option value="info">Info</option>
                   <option value="warning">Warning</option>
@@ -416,7 +585,7 @@ function AdminPage() {
                 <select
                   value={newAlert.audience}
                   onChange={e => setNewAlert(a => ({ ...a, audience: e.target.value }))}
-                  style={{ padding: 8, borderRadius: 4, border: '1px solid #bbb' }}
+                  style={{ padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
                 >
                   <option value="All">All Users</option>
                   <option value="Admins">Admins Only</option>
@@ -427,14 +596,14 @@ function AdminPage() {
                 value={newAlert.message}
                 onChange={e => setNewAlert(a => ({ ...a, message: e.target.value }))}
                 required
-                style={{ width: '100%', minHeight: 60, padding: 8, borderRadius: 4, border: '1px solid #bbb', marginBottom: 12 }}
+                style={{ width: '100%', minHeight: 60, padding: 8, borderRadius: 4, border: '1px solid #555', marginBottom: 12, background: '#e0e7ef', color: '#222' }}
               />
-              <button type="submit" style={{ padding: '8px 24px', borderRadius: 4, background: '#1976d2', color: '#fff', border: 'none', fontWeight: 600, fontSize: 16 }}>Send Alert</button>
+              <button type="submit" style={{ padding: '8px 24px', borderRadius: 4, background: '#43cea2', color: '#181a20', border: 'none', fontWeight: 600, fontSize: 16 }}>Send Alert</button>
             </form>
             {/* Alerts List */}
-            <table style={{ width: '100%', background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#e3f0fc' }}>
+                <tr style={{ background: '#e0e7ef' }}>
                   <th style={{ padding: 10 }}>Title</th>
                   <th style={{ padding: 10 }}>Type</th>
                   <th style={{ padding: 10 }}>Audience</th>
@@ -445,7 +614,7 @@ function AdminPage() {
               </thead>
               <tbody>
                 {alerts.map(alert => (
-                  <tr key={alert.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <tr key={alert.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
                     <td style={{ padding: 10 }}>{alert.title}</td>
                     <td style={{ padding: 10 }}>{alert.type}</td>
                     <td style={{ padding: 10 }}>{alert.audience}</td>
