@@ -122,7 +122,7 @@ function LandingPage() {
           onClick={() => navigate("/walldesigner")}
         >
           Launch the Wall Designer
-        </button>
+      </button>
       </section>
 
       {/* Footer */}

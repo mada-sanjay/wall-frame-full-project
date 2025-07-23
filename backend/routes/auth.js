@@ -5,6 +5,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'your_secret_key'; // Use a strong secret in production
 const { v4: uuidv4 } = require('uuid');
+const { sendEmail } = require('../utils/emailService');
+require('dotenv').config();
+
+// Plan limits from environment variables
+const PLAN_LIMITS = {
+  basic: parseInt(process.env.BASIC_PLAN_DRAFTS) || 3,
+  pro: parseInt(process.env.PRO_PLAN_DRAFTS) || 6,
+  pro_max: parseInt(process.env.PRO_MAX_PLAN_DRAFTS) || 999
+};
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -65,7 +74,10 @@ router.post('/login', (req, res) => {
         if (isMatch) {
           // Success: login and return token
           const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
-          return res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin, plan: user.plan } });
+          // Send login notification email
+          sendEmail(email, 'loginNotification')
+            .then(() => res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin, plan: user.plan } }))
+            .catch(() => res.json({ message: 'Login successful, but failed to send login email', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin, plan: user.plan } }));
         } else {
           // Fallback: check plain text (for legacy users)
           if (password === user.password) {
@@ -77,7 +89,10 @@ router.post('/login', (req, res) => {
             });
             // Success: login and return token
             const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
-            return res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin, plan: user.plan } });
+            // Send login notification email
+            sendEmail(email, 'loginNotification')
+              .then(() => res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin, plan: user.plan } }))
+              .catch(() => res.json({ message: 'Login successful, but failed to send login email', token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin, plan: user.plan } }));
           } else {
             return res.status(400).json({ message: 'Invalid credentials' });
           }
@@ -118,7 +133,10 @@ router.post('/save-session', authenticateToken, (req, res) => {
           if (err) {
             return res.status(500).json({ message: 'Database error', error: err });
           }
-          res.json({ message: 'Session saved successfully', sessionId: results.insertId, share_token: shareToken });
+          // Send email notification to user
+          sendEmail(user_email, 'draftCreated', results.insertId)
+            .then(() => res.json({ message: 'Session saved and email sent', sessionId: results.insertId, share_token: shareToken }))
+            .catch(() => res.json({ message: 'Session saved, but failed to send email', sessionId: results.insertId, share_token: shareToken }));
         }
       );
     });
@@ -126,6 +144,7 @@ router.post('/save-session', authenticateToken, (req, res) => {
 });
 
 router.put('/update-session/:id', authenticateToken, (req, res) => {
+  console.log('PUT /update-session/:id called', req.params.id, req.body.user_email);
   const { id } = req.params;
   const { user_email, session_data } = req.body;
   if (!user_email || !session_data) {
@@ -168,6 +187,7 @@ router.get('/sessions', authenticateToken, (req, res) => {
 });
 
 router.delete('/session/:id', authenticateToken, (req, res) => {
+  console.log('DELETE /session/:id called', req.params.id, req.query.user_email);
   const { id } = req.params;
   const { user_email } = req.query;
   if (!user_email) {
@@ -183,7 +203,17 @@ router.delete('/session/:id', authenticateToken, (req, res) => {
       if (results.affectedRows === 0) {
         return res.status(404).json({ message: 'Session not found or unauthorized' });
       }
-      res.json({ message: 'Session deleted successfully' });
+      // Send email notification to user
+      console.log('About to send draft self-deletion email to', user_email, 'for draft', id);
+      sendEmail(user_email, 'draftSelfDeletion', id)
+        .then((result) => {
+          console.log('Email sent result (user draft self-deletion):', result);
+          res.json({ message: 'Draft deleted and email sent' });
+        })
+        .catch((err) => {
+          console.log('Email send error (user draft self-deletion):', err);
+          res.json({ message: 'Draft deleted, but failed to send email' });
+        });
     }
   );
 });
@@ -249,12 +279,24 @@ router.get('/admin/users', authenticateToken, requireAdmin, (req, res) => {
   });
 });
 // Promote/demote user
-router.put('/admin/users/:id/promote', authenticateToken, requireAdmin, (req, res) => {
+router.put('/admin/users/:id/promote', async (req, res) => {
   const { id } = req.params;
   const { isAdmin } = req.body;
-  db.query('UPDATE users SET isAdmin = ? WHERE id = ?', [isAdmin ? 1 : 0, id], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Database error', error: err });
-    res.json({ message: 'User updated' });
+  db.query('UPDATE users SET isAdmin = ? WHERE id = ?', [isAdmin ? 1 : 0, id], async (err, results) => {
+    if (err) return res.status(500).json({ message: 'Failed to update admin status', error: err.message });
+    if (results.affectedRows === 0) return res.status(404).json({ message: 'User not found' });
+    // Get the user's email
+    db.query('SELECT email FROM users WHERE id = ?', [id], async (err2, results2) => {
+      if (err2 || !results2[0]) return res.json({ message: 'Admin status updated, but email not sent' });
+      const userEmail = results2[0].email;
+      console.log('Sending promotion email to', userEmail, 'isAdmin:', isAdmin);
+      const emailSent = await sendEmail(userEmail, 'promotion', isAdmin);
+      console.log('Email sent result (promotion):', emailSent);
+      if (!emailSent) {
+        return res.json({ message: 'Admin status updated, but failed to send email' });
+      }
+      res.json({ message: 'Admin status updated and email sent' });
+    });
   });
 });
 // Update user plan (admin only)
@@ -343,6 +385,173 @@ router.get('/me', authenticateToken, (req, res) => {
   db.query('SELECT id, email, isAdmin, plan FROM users WHERE id = ?', [userId], (err, results) => {
     if (err || !results.length) return res.status(500).json({ message: 'Database error' });
     res.json({ user: results[0] });
+  });
+});
+
+// Admin: Update user plan
+router.post('/admin/update-plan', async (req, res) => {
+  const { userEmail, newPlan } = req.body;
+  
+  if (!['basic', 'pro', 'pro_max'].includes(newPlan)) {
+    return res.status(400).json({ message: 'Invalid plan type' });
+  }
+
+  try {
+    console.log('Sending plan upgrade email to', userEmail, 'with plan', newPlan);
+    const emailSent = await sendEmail(userEmail, 'planUpgrade', newPlan);
+    console.log('Email sent result (plan upgrade):', emailSent);
+    // Update user's plan in database
+    db.query('UPDATE users SET plan = ? WHERE email = ?', [newPlan, userEmail], async function(err, results) {
+      if (err) {
+        console.error('Error updating plan:', err);
+        return res.status(500).json({ message: 'Failed to update plan' });
+      }
+
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Send email notification
+      // await sendEmail(userEmail, 'planUpgrade', newPlan); // This line is now redundant as email is sent before DB update
+      
+      res.json({ message: 'Plan updated successfully' });
+    });
+  } catch (error) {
+    console.error('Error in update-plan:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+});
+
+// Admin: Delete user account
+router.delete('/admin/delete-account', async (req, res) => {
+  const { userEmail } = req.body;
+
+  try {
+    console.log('Sending account deletion email to', userEmail);
+    const emailSent = await sendEmail(userEmail, 'accountDeletion');
+    console.log('Email sent result (account deletion):', emailSent);
+    // Delete user's drafts
+    db.query('DELETE FROM sessions WHERE user_email = ?', [userEmail]);
+    
+    // Delete user account
+    db.query('DELETE FROM users WHERE email = ?', [userEmail], function(err, results) {
+      if (err) {
+        console.error('Error deleting account:', err);
+        return res.status(500).json({ message: 'Failed to delete account' });
+      }
+
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.json({ message: 'Account deleted successfully' });
+    });
+  } catch (error) {
+    console.error('Error in delete-account:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+});
+
+// Admin: Delete user's draft
+router.delete('/admin/delete-draft/:id', async (req, res) => {
+  const { id } = req.params;
+  const { userEmail } = req.query;
+
+  try {
+    console.log('Sending draft deletion email to', userEmail, 'for draft', id);
+    const emailSent = await sendEmail(userEmail, 'draftDeletion', id);
+    console.log('Email sent result (draft deletion):', emailSent);
+    // Delete the draft
+    db.query('DELETE FROM sessions WHERE id = ? AND user_email = ?', [id, userEmail], function(err, results) {
+      if (err) {
+        console.error('Error deleting draft:', err);
+        return res.status(500).json({ message: 'Failed to delete draft' });
+      }
+
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ message: 'Draft not found' });
+      }
+
+      res.json({ message: 'Draft deleted successfully' });
+    });
+  } catch (error) {
+    console.error('Error in delete-draft:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+});
+
+// Get user's plan limit
+router.get('/plan-limit', (req, res) => {
+  const { user_email } = req.query;
+  
+  db.query('SELECT plan FROM users WHERE email = ?', [user_email], (err, results) => {
+    if (err) {
+      console.error('Error getting plan:', err);
+      return res.status(500).json({ message: 'Failed to get plan information' });
+    }
+
+    if (!results[0]) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const limit = PLAN_LIMITS[results[0].plan] || PLAN_LIMITS.basic;
+    res.json({ limit });
+  });
+});
+
+// Test email configuration
+router.post('/test-email', async (req, res) => {
+  const { email } = req.body;
+  
+  try {
+    // Send test email
+    const result = await sendEmail(email, 'planUpgrade', 'Test Plan');
+    
+    if (result) {
+      res.json({ message: 'Test email sent successfully!' });
+    } else {
+      res.status(500).json({ message: 'Failed to send test email' });
+    }
+  } catch (error) {
+    console.error('Error sending test email:', error);
+    res.status(500).json({ message: 'Error sending test email', error: error.message });
+  }
+});
+
+// Admin: Send custom email notification to user
+router.post('/admin/send-email', async (req, res) => {
+  const { to, subject, message } = req.body;
+  try {
+    const nodemailer = require('nodemailer');
+    require('dotenv').config();
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to,
+      subject,
+      html: `<div style='font-family:sans-serif'>${message}</div>`
+    };
+    await transporter.sendMail(mailOptions);
+    res.json({ message: 'Email sent successfully!' });
+  } catch (error) {
+    console.error('Error sending admin email:', error);
+    res.status(500).json({ message: 'Failed to send email', error: error.message });
+  }
+});
+
+// Get all user emails for admin dropdown
+router.get('/admin/user-emails', (req, res) => {
+  db.query('SELECT email FROM users', (err, results) => {
+    if (err) return res.status(500).json({ message: 'Failed to fetch emails', error: err.message });
+    res.json({ emails: results.map(r => r.email) });
   });
 });
 

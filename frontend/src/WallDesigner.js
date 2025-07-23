@@ -5,7 +5,7 @@ import "./App.css";
 import { useNavigate } from "react-router-dom";
 
 // Helper to generate unique IDs
-function generateId() {  
+function generateId() {
   return '_' + Math.random().toString(36).substr(2, 9);
 }
 
@@ -105,12 +105,12 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       .then(data => {
         const dbDecorations = (data.decorations || []).map(d => ({ name: d.name, url: d.image }));
         const hardcoded = [
-          { name: 'frame', url: '/frame_1.png' },
-          { name: 'chair', url: '/chair.png' },
-          { name: 'garland', url: '/garland-removebg-preview.png' },
-          { name: 'garland', url: '/one.png' },
-          { name: 'Image', url: '/two.png' },
-          { name: 'garland', url: '/three.png' },
+    { name: 'frame', url: '/frame_1.png' },
+    { name: 'chair', url: '/chair.png' },
+    { name: 'garland', url: '/garland-removebg-preview.png' },
+    { name: 'garland', url: '/one.png' },
+    { name: 'Image', url: '/two.png' },
+    { name: 'garland', url: '/three.png' }, 
           { name: 'flower', url: '/flower-removebg-preview.png' },
         ];
         setDecorations([...dbDecorations, ...hardcoded]);
@@ -372,15 +372,15 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       reader.onload = (event) => {
         const base64Data = event.target.result;
         const newImage = {
-          id: generateId(),
+      id: generateId(),
           url: base64Data, // Store as Base64 instead of blob URL
-          name: file.name,
-          x: 20 + (uploadedImages.length + idx) * 30,
-          y: 20 + (uploadedImages.length + idx) * 30,
-          width: 100,
-          height: 100,
-          shape: shape,
-          frame: 'none',
+      name: file.name,
+      x: 20 + (uploadedImages.length + idx) * 30,
+      y: 20 + (uploadedImages.length + idx) * 30,
+      width: 100,
+      height: 100,
+      shape: shape,
+      frame: 'none',
         };
         setUploadedImages((prev) => [...prev, newImage]);
       };
@@ -443,20 +443,20 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         .catch(error => {
           console.error('Error converting default image to Base64:', error);
           // Fallback to original URL if conversion fails
-          setUploadedImages(prev => [
-            ...prev,
-            {
-              id: generateId(),
-              url: imgUrl,
-              name: 'Default Image',
-              x: dropX - 50,
-              y: dropY - 50,
-              width: 100,
-              height: 100,
-              shape: shape,
-              frame: 'none',
-            }
-          ]);
+      setUploadedImages(prev => [
+        ...prev,
+        {
+          id: generateId(),
+          url: imgUrl,
+          name: 'Default Image',
+          x: dropX - 50,
+          y: dropY - 50,
+          width: 100,
+          height: 100,
+          shape: shape,
+          frame: 'none',
+        }
+      ]);
         });
     }
   };

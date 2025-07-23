@@ -10,6 +10,7 @@ const SECTIONS = [
   { key: "settings", label: "Settings" },
   { key: "feedback", label: "Feedback" },
   { key: "alerts", label: "Alerts / Notifications" }, // <-- new section
+  { key: "email", label: "Email Notification" }
 ];
 
 function AdminPage() {
@@ -29,6 +30,9 @@ function AdminPage() {
   const [pendingDecorations, setPendingDecorations] = useState([]);
   const [showAddDecoration, setShowAddDecoration] = useState(false);
   const [newDecoration, setNewDecoration] = useState({ name: '', category: '', image: '', status: 'Active' });
+  const [emailForm, setEmailForm] = useState({ to: '', subject: '', message: '' });
+  const [emailStatus, setEmailStatus] = useState('');
+  const [userEmails, setUserEmails] = useState([]);
 
   // Check admin status
   useEffect(() => {
@@ -71,6 +75,14 @@ function AdminPage() {
       .then(res => res.json())
       .then(data => setPendingDecorations(data.decorations || []));
   }, [section]);
+
+  // Fetch all user emails for the email notification dropdown
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch('/api/admin/user-emails', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => setUserEmails(data.emails || []));
+  }, []);
 
   // Add new decoration (API)
   const handleAddDecoration = (e) => {
@@ -138,47 +150,75 @@ function AdminPage() {
       });
   };
 
-  // Delete user
-  const handleDeleteUser = (id) => {
-    if (!window.confirm("Delete this user?")) return;
-    const token = localStorage.getItem("token");
-    fetch(`/api/admin/users/${id}`, {
-      method: "DELETE",
+  // Plan upgrade
+  const handleChangePlan = (userEmail, newPlan) => {
+    const token = localStorage.getItem('token');
+    fetch('/api/admin/update-plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ userEmail, newPlan })
+    })
+      .then(r => r.json())
+      .then(() => {
+        setUsers(users => users.map(u => u.email === userEmail ? { ...u, plan: newPlan } : u));
+      });
+  };
+
+  // Account deletion
+  const handleDeleteUser = (userEmail) => {
+    if (!window.confirm('Delete this user?')) return;
+    const token = localStorage.getItem('token');
+    fetch('/api/admin/delete-account', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ userEmail })
+    })
+      .then(r => r.json())
+      .then(() => {
+        setUsers(users => users.filter(u => u.email !== userEmail));
+      });
+  };
+
+  // Draft deletion
+  const handleDeleteDraft = (draftId, userEmail) => {
+    if (!window.confirm('Delete this draft?')) return;
+    const token = localStorage.getItem('token');
+    fetch(`/api/admin/delete-draft/${draftId}?userEmail=${userEmail}`, {
+      method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
       .then(() => {
-        setUsers(users => users.filter(u => u.id !== id));
+        setDrafts(drafts => drafts.filter(d => d.id !== draftId));
       });
   };
 
-  // Delete draft
-  const handleDeleteDraft = (id) => {
-    if (!window.confirm("Delete this draft?")) return;
-    const token = localStorage.getItem("token");
-    fetch(`/api/admin/drafts/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(r => r.json())
-      .then(() => {
-        setDrafts(drafts => drafts.filter(d => d.id !== id));
+  // Send custom email notification
+  const handleSendEmail = async (e) => {
+    e.preventDefault();
+    setEmailStatus('');
+    if (!emailForm.to || !emailForm.subject || !emailForm.message) {
+      setEmailStatus('Please fill all fields.');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/admin/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(emailForm)
       });
+      const data = await res.json();
+      if (res.ok) {
+        setEmailStatus('Email sent successfully!');
+        setEmailForm({ to: '', subject: '', message: '' });
+      } else {
+        setEmailStatus(data.message || 'Failed to send email');
+      }
+    } catch (err) {
+      setEmailStatus('Network error');
+    }
   };
-
-  // Add handleChangePlan function
-  function handleChangePlan(userId, newPlan) {
-    const token = localStorage.getItem("token");
-    fetch(`/api/admin/users/${userId}/plan`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ plan: newPlan })
-    })
-      .then(r => r.json())
-      .then(() => {
-        setUsers(users => users.map(u => u.id === userId ? { ...u, plan: newPlan } : u));
-      });
-  }
 
   if (loading) return <div style={{ padding: 40, fontSize: 20 }}>Loading admin data...</div>;
   if (error) return <div style={{ padding: 40, color: 'red' }}>{error}</div>;
@@ -393,7 +433,7 @@ function AdminPage() {
                     <td style={{ padding: 10, textAlign: 'center' }}>
                       <select
                         value={user.plan || 'basic'}
-                        onChange={e => handleChangePlan(user.id, e.target.value)}
+                        onChange={e => handleChangePlan(user.email, e.target.value)}
                         style={{ padding: '4px 8px', borderRadius: 4, background: '#e0e7ef', color: '#222', border: '1px solid #555' }}
                       >
                         <option value="basic">Basic</option>
@@ -406,7 +446,7 @@ function AdminPage() {
                       <button onClick={() => handlePromote(user.id, user.isAdmin)} style={{ marginRight: 8, padding: '4px 10px', borderRadius: 4, border: 'none', background: user.isAdmin ? '#555' : '#43cea2', color: '#fff', cursor: 'pointer' }}>
                         {user.isAdmin ? 'Demote' : 'Promote'}
                       </button>
-                      <button onClick={() => handleDeleteUser(user.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Delete</button>
+                      <button onClick={() => handleDeleteUser(user.email)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -431,7 +471,7 @@ function AdminPage() {
                     <td style={{ padding: 10 }}>{draft.user_email}</td>
                     <td style={{ padding: 10 }}>{new Date(draft.created_at).toLocaleDateString()}</td>
                     <td style={{ padding: 10, textAlign: 'center' }}>
-                      <button onClick={() => handleDeleteDraft(draft.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Delete</button>
+                      <button onClick={() => handleDeleteDraft(draft.id, draft.user_email)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -631,6 +671,47 @@ function AdminPage() {
               </tbody>
             </table>
           </section>
+        )}
+        {section === "email" && (
+          <div className="section" style={{ maxWidth: 500, margin: '32px auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #e0e0e0', padding: 24 }}>
+            <div className="section-title" style={{ fontSize: 22, marginBottom: 16 }}>Email Notification</div>
+            <form onSubmit={handleSendEmail}>
+              <div style={{ marginBottom: 12 }}>
+                <select
+                  value={emailForm.to}
+                  onChange={e => setEmailForm(f => ({ ...f, to: e.target.value }))}
+                  style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #bbb', fontSize: 16 }}
+                  required
+                >
+                  <option value="">Select user email</option>
+                  {userEmails.map(email => (
+                    <option key={email} value={email}>{email}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <input
+                  type="text"
+                  placeholder="Subject"
+                  value={emailForm.subject}
+                  onChange={e => setEmailForm(f => ({ ...f, subject: e.target.value }))}
+                  style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #bbb', fontSize: 16 }}
+                  required
+                />
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <textarea
+                  placeholder="Message"
+                  value={emailForm.message}
+                  onChange={e => setEmailForm(f => ({ ...f, message: e.target.value }))}
+                  style={{ width: '100%', minHeight: 80, padding: 10, borderRadius: 6, border: '1px solid #bbb', fontSize: 16 }}
+                  required
+                />
+              </div>
+              <button type="submit" className="header-button primary" style={{ width: 160, fontSize: 16 }}>Send Email</button>
+            </form>
+            {emailStatus && <div style={{ marginTop: 14, color: emailStatus.includes('success') ? 'green' : 'red', fontWeight: 600 }}>{emailStatus}</div>}
+          </div>
         )}
       </div>
     </div>
