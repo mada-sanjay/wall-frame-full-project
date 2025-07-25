@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Rnd } from "react-rnd";
 import html2canvas from "html2canvas";
 import "./App.css";
+import "./components/Wall.css";
 import { useNavigate } from "react-router-dom";
 
 // Helper to generate unique IDs
@@ -98,6 +99,8 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const [draftCount, setDraftCount] = useState(0);
   const [draftLimit, setDraftLimit] = useState(3);
   const [saveError, setSaveError] = useState("");
+  // Add state for active tab
+  const [activeTab, setActiveTab] = useState('design');
 
   useEffect(() => {
     fetch('/api/admin/decorations/public')
@@ -141,6 +144,14 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const [generatedLink, setGeneratedLink] = useState('');
 
   const navigate = useNavigate();
+
+  // Redirect to /login if not authenticated
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
 
   useEffect(() => {
     fetchDrafts();
@@ -507,284 +518,106 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   };
 
   return (
-    <div>
-      {/* Show plan and draft usage at the top */}
-      <div style={{ background: '#e3f0fc', padding: 12, borderRadius: 8, margin: '16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ color: '#1976d2', fontWeight: 600 }}>Plan: {plan === 'pro_max' ? 'Pro Max' : plan.charAt(0).toUpperCase() + plan.slice(1)}</span>
-        <span style={{ color: '#1976d2' }}>Drafts used: {draftCount} / {draftLimit === Infinity ? 'Unlimited' : draftLimit}</span>
-      </div>
-      {saveError && <div style={{ color: 'red', marginBottom: 12 }}>{saveError}</div>}
-      <div style={{
-        width: '100%',
-        background: '#1976d2',
-        color: '#fff',
-        padding: '24px 0',
-        textAlign: 'center',
-        fontSize: 32,
-        fontWeight: 700,
-        letterSpacing: 2,
-        borderRadius: '0 0 16px 16px',
-        marginBottom: 24,
-        position: 'relative'
-      }}>
-        Design Your Wall
-        {currentDraftId && (
-          <div style={{
-            position: 'absolute',
-            left: 24,
-            top: 24,
-            background: '#fff',
-            color: '#1976d2',
-            padding: '4px 12px',
-            borderRadius: 6,
-            fontSize: 14,
-            fontWeight: 600
-          }}>
-            Draft Loaded
-          </div>
-        )}
-        <div style={{ position: 'absolute', right: 24, top: 24, display: 'flex', gap: 8 }}>
-          {/* Admin Dashboard button, only for admins */}
+    <div className="wall-designer-root">
+      {/* Top Header Bar */}
+      <div className="header-bar">
+        <div className="header-logo">
+          <span role="img" aria-label="palette">🎨</span> Wall Designer <span className="pro-badge">Pro</span>
+        </div>
+        <div className="header-actions">
+          <span className="user-email" style={{ fontSize: '0.95rem', color: '#888', marginRight: 10 }}>{localStorage.getItem("userEmail") || "user@example.com"}</span>
           {localStorage.getItem('isAdmin') === '1' && (
-            <button
-              onClick={() => navigate('/admin')}
-              style={{
-                padding: "4px 10px",
-                fontSize: 13,
-                cursor: "pointer",
-                background: "#fff",
-                color: "#1976d2",
-                border: "2px solid #1976d2",
-                borderRadius: 4,
-                fontWeight: 600,
-                marginRight: 8
-              }}
-            >
-              Admin Dashboard
-            </button>
+            <button className="admin-dashboard" onClick={() => navigate('/admin')}><span style={{ marginRight: 6 }}>🛠️</span>Admin Dashboard</button>
           )}
-          <button
-            onClick={handleNewDesign}
-            style={{
-              padding: "4px 10px",
-              fontSize: 13,
-              cursor: "pointer",
-              background: "#fff",
-              color: "#1976d2",
-              border: "none",
-              borderRadius: 4,
-              fontWeight: 600
-            }}
-          >
-            New Design
+          {/* Profile button: circular, icon only */}
+          <button className="profile" onClick={handleProfile} style={{ borderRadius: '50%', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, background: '#fff', border: 'none', boxShadow: '0 1px 4px rgba(80,80,120,0.08)' }}>
+            <span>👤</span>
           </button>
-          <button
-            onClick={handleSaveDraft}
-            style={{
-              padding: "4px 10px",
-              fontSize: 13,
-              cursor: "pointer",
-              background: "#fff",
-              color: "#1976d2",
-              border: "none",
-              borderRadius: 4,
-              fontWeight: 600
-            }}
-          >
-            {currentDraftId ? "Update Draft" : "Save Draft"}
+          <button className="btn-logout" onClick={handleLogout}><span style={{ marginRight: 6 }}>⎋</span>Logout</button>
+        </div>
+      </div>
+      {/* Replace the tabs div and the top control bar with a single flex row */}
+      <div style={{ width: '100%', display: 'flex', alignItems: 'center', margin: '24px 0 16px 0', position: 'relative', zIndex: 10, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(80,80,120,0.06)' }}>
+        <div style={{ display: 'flex', gap: 3, alignItems: 'center', padding: '0 18px 0 8px' }}>
+          <button className={`tab-btn${activeTab === 'design' ? ' active' : ''}`} onClick={() => setActiveTab('design')}><span style={{ marginRight: 6 }}>🎨</span>Design</button>
+          <button className={`tab-btn${activeTab === 'decors' ? ' active' : ''}`} onClick={() => setActiveTab('decors')}><span style={{ marginRight: 6 }}>🖼️</span>Decors</button>
+          <button className={`tab-btn${activeTab === 'drafts' ? ' active' : ''}`} onClick={() => setActiveTab('drafts')}><span style={{ marginRight: 6 }}>🗂️</span>Drafts</button>
+        </div>
+        <div style={{ width: 1, height: 40, background: '#ececec', margin: '0 18px' }} />
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1, justifyContent: 'flex-start', marginLeft: 24 }}>
+          <button className="action-btn reset-save-btn" style={{ background: '#fff', color: '#7c3aed', border: 'none', borderRadius: '12px', fontWeight: 600, fontSize: 18, padding: '10px 28px', boxShadow: 'none', transition: 'background 0.18s, color 0.18s' }} onMouseOver={e => { e.currentTarget.style.background = '#ede9fe'; e.currentTarget.style.color = '#6d28d9'; }} onMouseOut={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#7c3aed'; }} onClick={handleNewDesign}>
+            <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>↻</span> Reset View
           </button>
-          <button
-            onClick={() => {
-              fetchDrafts();
-              setShowDrafts(!showDrafts);
-            }}
-            style={{
-              padding: "4px 10px",
-              fontSize: 13,
-              cursor: "pointer",
-              background: "#fff",
-              color: "#1976d2",
-              border: "none",
-              borderRadius: 4,
-              fontWeight: 600
-            }}
-          >
-            My Drafts
+          <button className="action-btn reset-save-btn" style={{ background: '#fff', color: '#7c3aed', border: 'none', borderRadius: '12px', fontWeight: 600, fontSize: 18, padding: '10px 28px', boxShadow: 'none', transition: 'background 0.18s, color 0.18s' }} onMouseOver={e => { e.currentTarget.style.background = '#ede9fe'; e.currentTarget.style.color = '#6d28d9'; }} onMouseOut={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#7c3aed'; }} onClick={handleSaveDraft}>
+            <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>💾</span> {currentDraftId ? 'Update Draft' : 'Save Draft'}
           </button>
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: "4px 10px",
-              fontSize: 13,
-              cursor: "pointer",
-              background: "#fff",
-              color: "#1976d2",
-              border: "none",
-              borderRadius: 4,
-              fontWeight: 600
-            }}
-          >
-            Logout
+        </div>
+        <div style={{ width: 1, height: 40, background: '#ececec', margin: '0 18px' }} />
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', paddingRight: 18 }}>
+          <button className="action-btn" style={{ background: '#fff', color: '#232946', borderRadius: '12px', boxShadow: 'none', fontWeight: 600, fontSize: 18, padding: '10px 28px', border: 'none', display: 'flex', alignItems: 'center' }} onClick={handleShare}>
+            <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>🔗</span> Share
           </button>
-          <button
-            onClick={handleProfile}
-            style={{
-              width: 32,
-              height: 32,
-              padding: 0,
-              fontSize: 18,
-              cursor: "pointer",
-              background: "#fff",
-              color: "#1976d2",
-              border: "none",
-              borderRadius: "50%",
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            title="Profile"
-          >
-            {/* Use a user icon if you have one, otherwise fallback to 'P' */}
-            <span role="img" aria-label="profile">👤</span>
+          <button className="action-btn" style={{ background: '#a78bfa', color: '#fff', borderRadius: '12px', boxShadow: 'none', fontWeight: 600, fontSize: 18, padding: '10px 28px', border: 'none', display: 'flex', alignItems: 'center' }} onClick={handleDownload}>
+            <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>⬇️</span> Download
           </button>
         </div>
       </div>
-      {/* Drafts Dropdown */}
-      {showDrafts && (
-        <div style={{
-          position: 'absolute',
-          top: 80,
-          right: 24,
-          background: '#fff',
-          border: '1px solid #e0e0e0',
-          borderRadius: 8,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-          padding: 16,
-          minWidth: 300,
-          maxHeight: 400,
-          overflowY: 'auto',
-          zIndex: 1000
-        }}>
-          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 12 }}>My Saved Drafts</div>
-          {savedSessions.length === 0 ? (
-            <div style={{ color: '#888', fontSize: 14 }}>No drafts saved yet.</div>
-          ) : (
-            savedSessions.map((session, idx) => (
-              <div key={session.id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '8px 0',
-                borderBottom: idx < savedSessions.length - 1 ? '1px solid #eee' : 'none'
-              }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>Draft {savedSessions.length - idx}</div>
-                  <div style={{ fontSize: 12, color: '#666' }}>
-                    {new Date(session.created_at).toLocaleString()}
+      <div className="wall-designer-layout">
+        {/* Sidebar */}
+        <div className="sidebar">
+          {activeTab === 'design' && (
+            <>
+              <div className="section-card">
+                <div className="section-title">Canvas Size</div>
+                <div style={{ display: 'flex', gap: 6, maxWidth: 180, alignItems: 'flex-end' }}>
+                  <div>
+                    <label htmlFor="canvas-width">Width</label>
+                    <input id="canvas-width" type="number" name="width" value={inputWidth} min={100} max={800} onChange={handleInputChange} />
                   </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => loadDraft(session)}
-                    style={{
-                      padding: '4px 12px',
-                      fontSize: 12,
-                      cursor: 'pointer',
-                      background: '#1976d2',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 4,
-                      fontWeight: 500
-                    }}
-                  >
-                    Load
-                  </button>
-                  <button
-                    onClick={() => deleteDraft(session.id)}
-                    style={{
-                      padding: '4px 12px',
-                      fontSize: 12,
-                      cursor: 'pointer',
-                      background: '#d32f2f',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 4,
-                      fontWeight: 500
-                    }}
-                  >
-                    Delete
-                  </button>
+    <div>
+                    <label htmlFor="canvas-height">Height</label>
+                    <input id="canvas-height" type="number" name="height" value={inputHeight} min={100} max={2000} onChange={handleInputChange} />
+                  </div>
+                  <button className="action-btn" style={{ minWidth: 60, padding: '8px 11px' }} onClick={handleSetWallSize}>Set</button>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      )}
-      {/* Layout: Left sidebar, Wall container, Right controls */}
-      <div style={{
-        marginTop: 12,
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'flex-start',
-        gap: 32
-      }}>
-        {/* Left Sidebar */}
-        <div style={{
-          minWidth: 180,
-          background: '#f7f7fa',
-          borderRadius: 12,
-          padding: 16,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          marginRight: 8
-        }}>
-          {/* Default Wall Images Section */}
-          <div style={{ width: '100%', marginBottom: 24, background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', padding: 10, border: '1px solid #e0e0e0' }}>
-            <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 8 }}>Default Wall Images</div>
-            <button
-              style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 6, border: '1px solid #bbb', background: '#f7f7fa', cursor: 'pointer', width: '100%' }}
-              onClick={() => setShowDefaultWallImages((v) => !v)}
-            >
-              {showDefaultWallImages ? 'Hide Images' : 'Give me some default images'}
-            </button>
-            {showDefaultWallImages && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="section-card">
+                <div className="section-title">Default Wall Images</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, maxHeight: 100, overflowY: 'auto' }}>
                 {defaultWallImages.map((img, idx) => (
                   <img
                     key={idx}
                     src={img}
-                    alt={`Default wall ${idx+1}`}
-                    style={{ width: 140, height: 80, objectFit: 'cover', borderRadius: 8, cursor: 'grab', border: '2px solid #eee' }}
+                      alt={`Default wall ${idx + 1}`}
+                      style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', border: '2px solid #eee' }}
                     draggable
                     onDragStart={handleDragStartDefaultImage(img)}
-                    onClick={() => { setWallImage(img); setShowDefaultWallImages(false); }}
+                      onClick={() => { setWallImage(img); }}
                   />
                 ))}
+                </div>
               </div>
-            )}
-          </div>
-          {/* Decorations Container */}
-          <div style={{ width: '100%', background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', padding: 10, border: '1px solid #e0e0e0', marginTop: 0, marginBottom: 24 }}>
-            <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 8 }}>Decorations</div>
-            <button
-              style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 6, border: '1px solid #bbb', background: '#f7f7fa', cursor: 'pointer', width: '100%' }}
-              onClick={() => setShowDecorations(v => !v)}
-            >
-              {showDecorations ? 'Hide Decorations' : 'Show Decorations'}
-            </button>
-            {showDecorations && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 300, overflowY: 'auto' }}>
+              <div className="section-card">
+                <div className="section-title">Add Images</div>
+                <label className="upload-label upload-btn">
+                  <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleImagesUpload} />
+                  Upload Image
+                </label>
+              </div>
+            </>
+          )}
+          {activeTab === 'decors' && (
+            <>
+              <div className="section-card">
+                <div className="section-title">My Decorations</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 120, overflowY: 'auto' }}>
                 {decorations.map((item, idx) => (
                   <img
                     key={idx}
                     src={item.url}
                     alt={item.name}
                     title={item.name}
-                    style={{ width: 80, height: 60, objectFit: 'contain', borderRadius: 6, cursor: 'pointer', margin: '0 auto' }}
+                      style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 6, cursor: 'pointer', border: '1.5px solid #ececec', background: '#fff', padding: 2 }}
                     onClick={() => {
                       setDecorationOverlays(prev => [
                         ...prev,
@@ -801,76 +634,70 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                   />
                 ))}
               </div>
-            )}
           </div>
-          <div style={{
-            minWidth: 180,
-            background: '#f7f7f7',
-            border: '1px solid #e0e0e0',
-            borderRadius: 12,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-            padding: 16,
-            marginTop: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            alignItems: 'stretch',
-          }}>
-            <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 8 }}>Selected Decorations</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {decorationOverlays.length === 0 && (
-                <span style={{ color: '#888', fontSize: 14 }}>No decorations added.</span>
-              )}
-              {decorationOverlays.map((dec, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <img
-                    src={dec.url}
-                    alt={dec.name}
-                    style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6, border: '1px solid #ccc' }}
-                  />
-                  <button
-                    className="delete-btn"
-                    onClick={() => setDecorationOverlays(prev => prev.filter((_, i) => i !== idx))}
-                    title="Delete"
-                    style={{
-                      background: '#fff',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: 22,
-                      height: 22,
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      color: '#d32f2f',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 16,
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+              <div className="section-card">
+                <div className="section-title">Apply Frame</div>
+                {selectedImageId ? (
+                  <select
+                    aria-label="Apply Frame"
+                    value={uploadedImages.find(img => img.id === selectedImageId)?.frame || 'none'}
+                    onChange={e => {
+                      const frame = e.target.value;
+                      updateImage(selectedImageId, { frame });
                     }}
+                    style={{ padding: 6, fontSize: 15, borderRadius: 6, border: '1px solid #bbb', marginBottom: 8 }}
                   >
-                    ×
-                  </button>
+                    <option value="none">Apply Frame</option>
+                    <option value="shadow">Shadow</option>
+                    <option value="gold">Gold</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="dotted">Dotted</option>
+                    <option value="double">Double</option>
+                    <option value="gradient">Gradient</option>
+                    <option value="embossed">Embossed</option>
+                    <option value="wood">Wood</option>
+                  </select>
+                ) : <div style={{ color: '#888', fontSize: 14 }}>Select an image to apply a frame.</div>}
+              </div>
+            </>
+          )}
+          {activeTab === 'drafts' && (
+            <div className="section-card">
+              <div className="section-title">My Saved Drafts</div>
+              {savedSessions.length === 0 ? (
+                <div style={{ color: '#888', fontSize: 14 }}>No drafts saved yet.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 180, overflowY: 'auto' }}>
+                  {savedSessions.map((session, idx) => (
+                    <div key={session.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: idx < savedSessions.length - 1 ? '1px solid #eee' : 'none' }}>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 500 }}>Draft {savedSessions.length - idx}</div>
+                        <div style={{ fontSize: 12, color: '#666' }}>{new Date(session.created_at).toLocaleString()}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className="action-btn" style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => loadDraft(session)}>Load</button>
+                        <button className="action-btn" style={{ padding: '4px 12px', fontSize: 12, background: '#d32f2f', color: '#fff' }} onClick={() => deleteDraft(session.id)}>Delete</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
+          )}
           </div>
+        {/* Main Canvas Area */}
+        <div className="wall-main">
+          {/* Button row above the canvas */}
+          {/* Removed absolute positioning for buttons */}
+          <div className="wall-canvas">
+            {/* Canvas placeholder if empty */}
+            {uploadedImages.length === 0 && decorationOverlays.length === 0 && !wallImage ? (
+              <div className="canvas-placeholder">
+                <span style={{ fontSize: 48, opacity: 0.3 }} role="img" aria-label="image">🖼️</span>
+                <div style={{ fontWeight: 600, fontSize: 22, marginTop: 12 }}>Start Designing</div>
+                <div style={{ color: '#888', fontSize: 16, marginTop: 6 }}>Upload images and start creating your wall design</div>
         </div>
-        {/* Wall Container + Download Button as a column */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{
-            background: '#fff',
-            border: '2px solid #e0e0e0',
-            borderRadius: 16,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-            padding: 10,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: wallSize.height + 48,
-            minWidth: wallSize.width + 48,
-            backgroundColor:'lightblue',
-            position: 'relative'
-          }}>
+            ) : (
             <div
               ref={wallRef}
               style={{
@@ -888,7 +715,6 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
               onDrop={handleWallDrop}
               onDragOver={handleWallDragOver}
             >
-              {/* Always render wall image as first absolutely positioned child */}
               {wallImage && (
                 <img
                   src={wallImage}
@@ -905,7 +731,6 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                   }}
                 />
               )}
-              {/* Overlay uploaded images on the wall, draggable and resizable */}
               {uploadedImages.map((img) => (
                 <Rnd
                   key={img.id}
@@ -947,7 +772,6 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                   </div>
                 </Rnd>
               ))}
-              {/* Decoration overlays (ensure these are inside wallRef for download) */}
               {decorationOverlays.map((dec, idx) => (
                 <Rnd
                   key={idx}
@@ -978,17 +802,15 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                   }}
                   style={{ zIndex: 15, pointerEvents: 'auto', position: 'absolute' }}
                   enableResizing={true}
-                >
-                  <div
-                    style={{ position: 'relative', width: '100%', height: '100%' }}
                   >
+                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                     <img
                       src={dec.url}
                       alt={dec.name}
                       style={{
                         width: '100%',
                         height: '100%',
-                        pointerEvents: 'auto', // <-- changed from 'none' to 'auto'
+                          pointerEvents: 'auto',
                         userSelect: 'none',
                         display: 'block',
                         borderRadius: 6
@@ -998,189 +820,12 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                 </Rnd>
               ))}
             </div>
-          </div>
-          {/* Download Button below wall, centered with wall */}
-          <button className="upload-btn" style={{ fontSize: 16, padding: '10px 32px', marginTop: 24 }} onClick={handleDownload}>
-            Download
-          </button>
-          <button className="upload-btn" style={{ fontSize: 16, padding: '10px 32px', marginTop: 12 }} onClick={handleShare}>
-            Share
-          </button>
-        </div>
-        {/* Right Side Controls: Two separate containers stacked vertically */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* First container: Upload Wall & wall size */}
-          <div style={{
-            minWidth: 240,
-            background: '#f7f7f7',
-            border: '1px solid #e0e0e0',
-            borderRadius: 12,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-            padding: 24,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            alignItems: 'stretch',
-            width:'20px'
-          }}>
-            {/* Upload Wall */}
-            <label className="upload-label upload-btn" style={{ justifyContent: 'center' }}>
-              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleWallImageChange} />
-              Upload Wall
-            </label>
-            {/* Debug: Show wall image file name or message */}
-            <span style={{ color: '#888', fontSize: 14, textAlign: 'center' }}>
-              {wallImage ? 'Wall image selected' : 'No wall image selected'}
-            </span>
-            {/* Wall Size Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-              <span>Width:</span>
-              <input
-                type="number"
-                name="width"
-                value={inputWidth}
-                min={100}
-                max={800}
-                onChange={handleInputChange}
-                style={{ width: 40, padding: '2px 4px', fontSize: 14 }}
-              />
-              <span>Height:</span>
-              <input
-                type="number"
-                name="height"
-                value={inputHeight}
-                min={100}
-                max={2000}
-                onChange={handleInputChange}
-                style={{ width: 40, padding: '2px 4px', fontSize: 14 }}
-              />
-              <button className="upload-btn" style={{ padding: '6px 16px', fontSize: 14 }} onClick={handleSetWallSize}>Set</button>
-            </div>
-          </div>
-          {/* Second container: Choose Shape & Upload Images */}
-          <div style={{
-            minWidth: 240,
-            background: '#f7f7f7',
-            border: '1px solid #e0e0e0',
-            borderRadius: 12,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-            padding: 24,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            alignItems: 'stretch',
-            width:'20px'
-          }}>
-            {/* Shape Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-              <span style={{ fontSize: 14 }}>Shape:</span>
-              <select value={shape} onChange={handleShapeChange} style={{ padding: 4 }}>
-                <option value="circle">Circle</option>
-                <option value="diamond">Diamond</option>
-                <option value="square">Square</option>
-                <option value="rhombus">Rhombus</option>
-              </select>
-            </div>
-            {/* Upload Images */}
-            <label className="upload-label upload-btn" style={{ justifyContent: 'center' }}>
-              <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleImagesUpload} />
-              ⬆️ Upload Images
-            </label>
-          </div>
-          {/* Third container: Frame Selector for Uploaded Images */}
-          <div style={{
-            minWidth: 240,
-            background: '#f7f7f7',
-            border: '1px solid #e0e0e0',
-            borderRadius: 12,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-            padding: 24,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            alignItems: 'stretch',
-          }}>
-            {selectedImageId ? (
-              <>
-                <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 8 }}>Apply Frame</div>
-                <select
-                  aria-label="Apply Frame"
-                  value={uploadedImages.find(img => img.id === selectedImageId)?.frame || 'none'}
-                  onChange={e => {
-                    const frame = e.target.value;
-                    updateImage(selectedImageId, { frame });
-                  }}
-                  style={{ padding: 6, fontSize: 15, borderRadius: 6, border: '1px solid #bbb', marginBottom: 8 }}
-                >
-                  <option value="none">Apply Frame</option>
-                  <option value="shadow">Shadow</option>
-                  <option value="gold">Gold</option>
-                  <option value="dashed">Dashed</option>
-                  <option value="dotted">Dotted</option>
-                  <option value="double">Double</option>
-                  <option value="gradient">Gradient</option>
-                  <option value="embossed">Embossed</option>
-                  <option value="wood">Wood</option>
-                </select>
-              </>
-            ) : null}
-          </div>
-          {/* Add this after the Frame selector container in the right-side controls */}
-          <div style={{
-            minWidth: 240,
-            background: '#f7f7f7',
-            border: '1px solid #e0e0e0',
-            borderRadius: 12,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-            padding: 24,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            alignItems: 'stretch',
-            marginTop: 8
-          }}>
-            <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 8 }}>Selected Images</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {uploadedImages.length === 0 && (
-                <span style={{ color: '#888', fontSize: 14 }}>No images uploaded.</span>
-              )}
-              {uploadedImages.map(img => (
-                <div key={img.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <img
-                    src={img.url}
-                    alt={img.name}
-                    style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6, border: '1px solid #ccc' }}
-                  />
-                  <button
-                    className="delete-btn"
-                    onClick={() => deleteImage(img.id)}
-                    title="Delete"
-                    style={{
-                      background: '#fff',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: 22,
-                      height: 22,
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      color: '#d32f2f',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 16,
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
+            )}
           </div>
         </div>
       </div>
       {showShareModal && (
-        <div style={{
+          <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', zIndex: 9999,
           display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
@@ -1192,14 +837,14 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
               </label>
               <label style={{ fontWeight: 500, fontSize: 15 }}>
                 <input type="radio" name="shareType" value="edit" checked={shareType === 'edit'} onChange={() => setShareType('edit')} /> Editable
-              </label>
+            </label>
             </div>
             <button onClick={handleGenerateLink} style={{ padding: '8px 20px', borderRadius: 6, border: '1px solid #1976d2', background: '#1976d2', color: '#fff', fontWeight: 600, fontSize: 15, margin: '16px 0 0 0' }}>Generate Link</button>
             {generatedLink && (
               <div style={{ marginTop: 16, width: '100%', textAlign: 'center' }}>
                 <div style={{ wordBreak: 'break-all', color: '#1976d2', fontSize: 14, marginBottom: 8 }}>{generatedLink}</div>
                 <button onClick={handleCopyLink} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: '#e3f0fc', color: '#1976d2', fontWeight: 600, fontSize: 14 }}>Copy Link</button>
-              </div>
+          </div>
             )}
             <button onClick={() => setShowShareModal(false)} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: '#eee', color: '#333', fontWeight: 500, fontSize: 14, marginTop: 12 }}>Close</button>
           </div>

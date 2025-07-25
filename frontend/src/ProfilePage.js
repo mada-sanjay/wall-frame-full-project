@@ -10,6 +10,8 @@ function ProfilePage() {
   const [draftCount, setDraftCount] = useState(0);
   const [draftLimit, setDraftLimit] = useState(3);
   const [loading, setLoading] = useState(true);
+  const [upgradeRequestStatus, setUpgradeRequestStatus] = useState(null);
+  const [requestedPlan, setRequestedPlan] = useState(null);
   const email = localStorage.getItem("userEmail") || "";
   const navigate = useNavigate();
 
@@ -38,6 +40,18 @@ function ProfilePage() {
         const data = await res.json();
         if (res.ok) {
           setDraftCount((data.sessions || []).length);
+        }
+      } catch {}
+      // Fetch upgrade request status
+      try {
+        const res = await fetch("/api/upgrade-request/status", { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        if (res.ok && data.status) {
+          setUpgradeRequestStatus(data.status);
+          setRequestedPlan(data.requested_plan);
+        } else {
+          setUpgradeRequestStatus(null);
+          setRequestedPlan(null);
         }
       } catch {}
       setLoading(false);
@@ -82,30 +96,24 @@ function ProfilePage() {
     }
   };
 
-  const handleUpgrade = async (newPlan) => {
+  // New upgrade request logic
+  const handleUpgradeRequest = async (nextPlan) => {
     setMessage("");
     const token = localStorage.getItem("token");
     if (!token) return;
-    // Payment logic placeholder
-    if (newPlan === "pro") {
-      if (!window.confirm("Upgrade to Pro for $10?")) return;
-    } else if (newPlan === "pro_max") {
-      if (!window.confirm("Upgrade to Pro Max for $30?")) return;
-    }
     try {
-      const res = await fetch("/api/upgrade-plan", {
+      const res = await fetch("/api/upgrade-request", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ plan: newPlan })
+        body: JSON.stringify({ requested_plan: nextPlan })
       });
       const data = await res.json();
       if (res.ok) {
-        setPlan(newPlan);
-        localStorage.setItem("userPlan", newPlan);
-        setMessage(`Plan upgraded to ${newPlan}!`);
-        setDraftLimit(newPlan === "pro" ? 6 : newPlan === "pro_max" ? Infinity : 3);
+        setUpgradeRequestStatus("pending");
+        setRequestedPlan(nextPlan);
+        setMessage("Upgrade request submitted. Awaiting admin approval.");
       } else {
-        setMessage(data.message || "Upgrade failed");
+        setMessage(data.message || "Upgrade request failed");
       }
     } catch (err) {
       setMessage("Network error");
@@ -160,13 +168,23 @@ function ProfilePage() {
           <div style={{ marginBottom: 12, color: '#43cea2' }}>
             Drafts used: {loading ? '...' : draftCount} / {draftLimit === Infinity ? 'Unlimited' : draftLimit}
           </div>
+          {/* Upgrade logic with admin approval workflow */}
           {plan !== 'pro_max' && (
             <div style={{ marginBottom: 8 }}>
-              <button type="button" onClick={() => handleUpgrade(plan === 'basic' ? 'pro' : 'pro_max')} style={{ padding: '8px 20px', fontSize: 15, background: '#43cea2', color: '#181a20', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
-                Upgrade to {plan === 'basic' ? 'Pro ($10)' : 'Pro Max ($30)'}
-              </button>
+              {upgradeRequestStatus === 'pending' ? (
+                <div style={{ color: '#f5c518', fontWeight: 600 }}>Upgrade request to {requestedPlan} pending admin approval.</div>
+              ) : upgradeRequestStatus === 'approved' ? (
+                <div style={{ color: '#43cea2', fontWeight: 600 }}>Upgrade to {requestedPlan} approved!</div>
+              ) : upgradeRequestStatus === 'rejected' ? (
+                <div style={{ color: '#ee0979', fontWeight: 600 }}>Upgrade to {requestedPlan} was rejected.</div>
+              ) : (
+                <button type="button" onClick={() => handleUpgradeRequest(plan === 'basic' ? 'pro' : 'pro_max')} style={{ padding: '8px 20px', fontSize: 15, background: '#43cea2', color: '#181a20', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                  Request upgrade to {plan === 'basic' ? 'Pro' : 'Pro Max'}
+                </button>
+              )}
             </div>
           )}
+          {message && <div style={{ color: message.includes("success") ? "#43cea2" : "#ee0979", marginBottom: 12, textAlign: "center" }}>{message}</div>}
         </div>
       </div>
     </div>

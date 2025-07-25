@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 const SECTIONS = [
   { key: "analytics", label: "Analytics" },
   { key: "users", label: "User Management" },
+  { key: "upgrade_requests", label: "Upgrade Requests" },
   { key: "drafts", label: "Draft Management" },
   { key: "decorations", label: "Decoration Management" },
   { key: "moderation", label: "Moderation" },
@@ -33,6 +34,7 @@ function AdminPage() {
   const [emailForm, setEmailForm] = useState({ to: '', subject: '', message: '' });
   const [emailStatus, setEmailStatus] = useState('');
   const [userEmails, setUserEmails] = useState([]);
+  const [upgradeRequests, setUpgradeRequests] = useState([]);
 
   // Check admin status
   useEffect(() => {
@@ -83,6 +85,15 @@ function AdminPage() {
       .then(res => res.json())
       .then(data => setUserEmails(data.emails || []));
   }, []);
+
+  // Fetch upgrade requests when section is selected
+  useEffect(() => {
+    if (section !== 'upgrade_requests') return;
+    const token = localStorage.getItem('token');
+    fetch('/api/admin/upgrade-requests', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => setUpgradeRequests(data.requests || []));
+  }, [section]);
 
   // Add new decoration (API)
   const handleAddDecoration = (e) => {
@@ -218,6 +229,26 @@ function AdminPage() {
     } catch (err) {
       setEmailStatus('Network error');
     }
+  };
+
+  // Approve/reject handlers
+  const handleApproveUpgrade = (id) => {
+    const token = localStorage.getItem('token');
+    fetch(`/api/admin/upgrade-requests/${id}/approve`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(() => setUpgradeRequests(reqs => reqs.map(r => r.id === id ? { ...r, status: 'approved' } : r)));
+  };
+  const handleRejectUpgrade = (id) => {
+    const token = localStorage.getItem('token');
+    fetch(`/api/admin/upgrade-requests/${id}/reject`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(() => setUpgradeRequests(reqs => reqs.map(r => r.id === id ? { ...r, status: 'rejected' } : r)));
   };
 
   if (loading) return <div style={{ padding: 40, fontSize: 20 }}>Loading admin data...</div>;
@@ -447,6 +478,42 @@ function AdminPage() {
                         {user.isAdmin ? 'Demote' : 'Promote'}
                       </button>
                       <button onClick={() => handleDeleteUser(user.email)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+        {section === "upgrade_requests" && (
+          <section>
+            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Upgrade Requests</h2>
+            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#e0e7ef' }}>
+                  <th style={{ padding: 10 }}>User Email</th>
+                  <th style={{ padding: 10 }}>Requested Plan</th>
+                  <th style={{ padding: 10 }}>Status</th>
+                  <th style={{ padding: 10 }}>Requested At</th>
+                  <th style={{ padding: 10 }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {upgradeRequests.map(req => (
+                  <tr key={req.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
+                    <td style={{ padding: 10 }}>{req.email}</td>
+                    <td style={{ padding: 10 }}>{req.requested_plan}</td>
+                    <td style={{ padding: 10, color: req.status === 'pending' ? '#f5c518' : req.status === 'approved' ? '#43cea2' : '#ee0979', fontWeight: 600 }}>{req.status.charAt(0).toUpperCase() + req.status.slice(1)}</td>
+                    <td style={{ padding: 10 }}>{new Date(req.created_at).toLocaleString()}</td>
+                    <td style={{ padding: 10 }}>
+                      {req.status === 'pending' ? (
+                        <>
+                          <button onClick={() => handleApproveUpgrade(req.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#388e3c', color: '#fff', cursor: 'pointer', marginRight: 8 }}>Approve</button>
+                          <button onClick={() => handleRejectUpgrade(req.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Reject</button>
+                        </>
+                      ) : (
+                        <span style={{ color: '#888' }}>—</span>
+                      )}
                     </td>
                   </tr>
                 ))}

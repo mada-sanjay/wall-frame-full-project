@@ -378,6 +378,85 @@ router.post('/upgrade-plan', authenticateToken, (req, res) => {
   });
 });
 
+// USER: Request upgrade
+router.post('/upgrade-request', authenticateToken, (req, res) => {
+  const userId = req.user && req.user.id;
+  const { requested_plan } = req.body;
+  if (!userId || !['pro', 'pro_max'].includes(requested_plan)) {
+    return res.status(400).json({ message: 'Invalid request' });
+  }
+  // Check for existing pending/approved request
+  db.query('SELECT * FROM upgrade_requests WHERE user_id = ? AND status = "pending"', [userId], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error', error: err });
+    if (results.length) return res.status(400).json({ message: 'You already have a pending upgrade request.' });
+    db.query('INSERT INTO upgrade_requests (user_id, requested_plan) VALUES (?, ?)', [userId, requested_plan], (err2) => {
+      if (err2) return res.status(500).json({ message: 'Database error', error: err2 });
+      // Optionally notify admin here
+      res.json({ message: 'Upgrade request submitted. Awaiting admin approval.' });
+    });
+  });
+});
+
+// USER: Check upgrade request status
+router.get('/upgrade-request/status', authenticateToken, (req, res) => {
+  const userId = req.user && req.user.id;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  db.query('SELECT * FROM upgrade_requests WHERE user_id = ? ORDER BY created_at DESC LIMIT 1', [userId], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error', error: err });
+    if (!results.length) return res.json({ status: 'none' });
+    res.json({ status: results[0].status, requested_plan: results[0].requested_plan });
+  });
+});
+
+// ADMIN: List all upgrade requests
+router.get('/admin/upgrade-requests', authenticateToken, requireAdmin, (req, res) => {
+  db.query('SELECT ur.*, u.email FROM upgrade_requests ur JOIN users u ON ur.user_id = u.id ORDER BY ur.created_at DESC', (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error', error: err });
+    res.json({ requests: results });
+  });
+});
+
+// ADMIN: Approve upgrade request
+router.post('/admin/upgrade-requests/:id/approve', authenticateToken, requireAdmin, (req, res) => {
+  const { id } = req.params;
+  // Get request and user
+  db.query('SELECT * FROM upgrade_requests WHERE id = ?', [id], (err, results) => {
+    if (err || !results.length) return res.status(404).json({ message: 'Request not found' });
+    const reqRow = results[0];
+    if (reqRow.status !== 'pending') return res.status(400).json({ message: 'Request already processed' });
+    // Approve request and upgrade user
+    db.query('UPDATE upgrade_requests SET status = "approved", updated_at = NOW() WHERE id = ?', [id], (err2) => {
+      if (err2) return res.status(500).json({ message: 'Database error', error: err2 });
+      db.query('UPDATE users SET plan = ? WHERE id = ?', [reqRow.requested_plan, reqRow.user_id], (err3) => {
+        if (err3) return res.status(500).json({ message: 'Database error', error: err3 });
+        // Notify user
+        db.query('SELECT email FROM users WHERE id = ?', [reqRow.user_id], (err4, userRows) => {
+          if (!err4 && userRows[0]) sendEmail(userRows[0].email, 'upgradeApproved', reqRow.requested_plan);
+        });
+        res.json({ message: 'Upgrade approved and user plan updated.' });
+      });
+    });
+  });
+});
+
+// ADMIN: Reject upgrade request
+router.post('/admin/upgrade-requests/:id/reject', authenticateToken, requireAdmin, (req, res) => {
+  const { id } = req.params;
+  db.query('SELECT * FROM upgrade_requests WHERE id = ?', [id], (err, results) => {
+    if (err || !results.length) return res.status(404).json({ message: 'Request not found' });
+    const reqRow = results[0];
+    if (reqRow.status !== 'pending') return res.status(400).json({ message: 'Request already processed' });
+    db.query('UPDATE upgrade_requests SET status = "rejected", updated_at = NOW() WHERE id = ?', [id], (err2) => {
+      if (err2) return res.status(500).json({ message: 'Database error', error: err2 });
+      // Notify user
+      db.query('SELECT email FROM users WHERE id = ?', [reqRow.user_id], (err4, userRows) => {
+        if (!err4 && userRows[0]) sendEmail(userRows[0].email, 'upgradeRejected', reqRow.requested_plan);
+      });
+      res.json({ message: 'Upgrade request rejected.' });
+    });
+  });
+});
+
 // Get current user info
 router.get('/me', authenticateToken, (req, res) => {
   const userId = req.user && req.user.id;

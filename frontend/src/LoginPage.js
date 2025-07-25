@@ -37,9 +37,9 @@ function LoginPage({ onLogin }) {
         const params = new URLSearchParams(location.search);
         const redirect = params.get("redirect");
         if (redirect) {
-          navigate(redirect);
+          navigate(redirect, { replace: true });
         } else {
-          navigate("/landing");
+          navigate("/landing", { replace: true });
         }
       } else {
         setError(data.message || "Login failed");
