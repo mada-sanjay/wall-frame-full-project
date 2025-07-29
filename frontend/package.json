@@ -1,7 +1,8 @@
 {
-  "name": "react-wall-frame-project",
+  "name": "wall-frame-frontend",
   "version": "1.0.0",
   "private": true,
+  "description": "Wall Frame Design Platform Frontend",
   "dependencies": {
     "html2canvas": "^1.4.1",
     "react": "^18.2.0",
@@ -14,7 +15,9 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
   "proxy": "http://localhost:5000",
   "browserslist": {
@@ -28,5 +31,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }

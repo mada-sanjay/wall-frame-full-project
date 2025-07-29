@@ -2,16 +2,16 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const SECTIONS = [
-  { key: "analytics", label: "Analytics" },
-  { key: "users", label: "User Management" },
-  { key: "upgrade_requests", label: "Upgrade Requests" },
-  { key: "drafts", label: "Draft Management" },
-  { key: "decorations", label: "Decoration Management" },
-  { key: "moderation", label: "Moderation" },
-  { key: "settings", label: "Settings" },
-  { key: "feedback", label: "Feedback" },
-  { key: "alerts", label: "Alerts / Notifications" }, // <-- new section
-  { key: "email", label: "Email Notification" }
+  { key: "analytics", label: "Analytics", icon: "📊" },
+  { key: "users", label: "User Management", icon: "👥" },
+  { key: "upgrade_requests", label: "Upgrade Requests", icon: "⬆️" },
+  { key: "drafts", label: "Draft Management", icon: "📝" },
+  { key: "decorations", label: "Decoration Management", icon: "🎨" },
+  { key: "moderation", label: "Moderation", icon: "🛡️" },
+  { key: "settings", label: "Settings", icon: "⚙️" },
+  { key: "feedback", label: "Feedback", icon: "💬" },
+  { key: "alerts", label: "Alerts / Notifications", icon: "🔔" },
+  { key: "email", label: "Email Notification", icon: "📧" }
 ];
 
 function AdminPage() {
@@ -35,6 +35,27 @@ function AdminPage() {
   const [emailStatus, setEmailStatus] = useState('');
   const [userEmails, setUserEmails] = useState([]);
   const [upgradeRequests, setUpgradeRequests] = useState([]);
+  
+  // Dark mode state
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+    if (isDarkMode) {
+      document.body.classList.add('dark-mode');
+      document.body.classList.remove('light-mode');
+    } else {
+      document.body.classList.add('light-mode');
+      document.body.classList.remove('dark-mode');
+    }
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => !prev);
+  };
 
   // Check admin status
   useEffect(() => {
@@ -90,9 +111,20 @@ function AdminPage() {
   useEffect(() => {
     if (section !== 'upgrade_requests') return;
     const token = localStorage.getItem('token');
+    console.log('Fetching upgrade requests...');
     fetch('/api/admin/upgrade-requests', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => setUpgradeRequests(data.requests || []));
+      .then(res => {
+        console.log('Upgrade requests response status:', res.status);
+        return res.json();
+      })
+      .then(data => {
+        console.log('Upgrade requests data:', data);
+        console.log('First request sample:', data.requests?.[0]);
+        setUpgradeRequests(data.requests || []);
+      })
+      .catch(error => {
+        console.error('Error fetching upgrade requests:', error);
+      });
   }, [section]);
 
   // Add new decoration (API)
@@ -257,186 +289,275 @@ function AdminPage() {
   return (
     <div style={{
       display: 'flex',
-      maxWidth: 1200,
-      margin: '40px auto',
-      background: '#f0f1f5',
-      borderRadius: 16,
-      boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-      minHeight: 600,
-      color: '#222'
+      maxWidth: 1400,
+      margin: '20px auto',
+      background: isDarkMode ? '#1f2937' : '#ffffff',
+      borderRadius: 20,
+      boxShadow: isDarkMode ? '0 8px 32px rgba(0,0,0,0.3)' : '0 8px 32px rgba(0,0,0,0.12)',
+      minHeight: '90vh',
+      color: isDarkMode ? '#f9fafb' : '#1f2937',
+      overflow: 'hidden'
     }}>
-      {/* Sidebar */}
+      {/* Modern Sidebar */}
       <div style={{
-        width: 220,
-        background: '#d1d5db',
-        borderRadius: '16px 0 0 16px',
+        width: 280,
+        background: isDarkMode ? 'linear-gradient(180deg, #111827 0%, #1f2937 100%)' : 'linear-gradient(180deg, #1e293b 0%, #334155 100%)',
         padding: '32px 0',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'stretch',
-        gap: 8
+        gap: 4
       }}>
-        <h2 style={{ textAlign: 'center', color: '#333', marginBottom: 24 }}>Admin Menu</h2>
+        <div style={{ padding: '0 24px 24px 24px', borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #475569' }}>
+          <h2 style={{ 
+            textAlign: 'center', 
+            color: '#f8fafc', 
+            marginBottom: 8,
+            fontSize: '24px',
+            fontWeight: '700',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '28px' }}>⚡</span>
+            Admin Panel
+          </h2>
+          <div style={{ 
+            textAlign: 'center', 
+            color: '#94a3b8', 
+            fontSize: '14px',
+            fontWeight: '500'
+          }}>
+            Dashboard Control Center
+          </div>
+        </div>
+        
+        <div style={{ padding: '16px 0', flex: 1 }}>
         {SECTIONS.map(s => (
           <button
             key={s.key}
             onClick={() => setSection(s.key)}
             style={{
-              background: section === s.key ? '#e0e7ef' : 'transparent',
-              color: section === s.key ? '#222' : '#555',
+                background: section === s.key ? (isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.15)') : 'transparent',
+                color: section === s.key ? '#3b82f6' : (isDarkMode ? '#d1d5db' : '#cbd5e1'),
               border: 'none',
-              borderRadius: 8,
-              padding: '12px 24px',
-              margin: '0 16px',
+                borderRadius: 12,
+                padding: '16px 24px',
+                margin: '4px 16px',
               fontWeight: 600,
-              fontSize: 16,
+                fontSize: 15,
               cursor: 'pointer',
-              marginBottom: 4
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                transition: 'all 0.2s ease',
+                borderLeft: section === s.key ? '4px solid #3b82f6' : '4px solid transparent'
             }}
           >
-            {s.label}
+              <span style={{ fontSize: '18px' }}>{s.icon}</span>
+              <span>{s.label}</span>
           </button>
         ))}
       </div>
-      {/* Main Content */}
-      <div style={{ flex: 1, padding: 40 }}>
-        <h1 style={{ color: '#333', marginBottom: 32 }}>Admin Dashboard</h1>
+        
+        <div style={{ 
+          padding: '16px 24px', 
+          borderTop: isDarkMode ? '1px solid #374151' : '1px solid #475569',
+          color: '#94a3b8',
+          fontSize: '12px',
+          textAlign: 'center'
+        }}>
+          Admin Dashboard v2.0
+              </div>
+              </div>
+
+      {/* Main Content Area */}
+            <div style={{
+        flex: 1, 
+        padding: '32px 40px',
+        background: isDarkMode ? '#111827' : '#f8fafc',
+        overflowY: 'auto'
+            }}>
+              <div style={{
+                display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '32px',
+          paddingBottom: '16px',
+          borderBottom: isDarkMode ? '2px solid #374151' : '2px solid #e2e8f0'
+              }}>
+          <div>
+            <h1 style={{ 
+              color: isDarkMode ? '#f9fafb' : '#1e293b', 
+              marginBottom: '8px',
+              fontSize: '32px',
+              fontWeight: '800',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <span style={{ fontSize: '28px' }}>🎯</span>
+              {SECTIONS.find(s => s.key === section)?.label || 'Dashboard'}
+            </h1>
+                <div style={{
+              color: isDarkMode ? '#d1d5db' : '#64748b', 
+              fontSize: '16px',
+              fontWeight: '500'
+            }}>
+              Manage your platform and monitor user activity
+              </div>
+          </div>
+          
+              <div style={{
+                display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '8px 16px',
+            background: isDarkMode ? '#374151' : '#ffffff',
+            borderRadius: '12px',
+            boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.08)',
+            border: isDarkMode ? '1px solid #4b5563' : '1px solid #e2e8f0'
+          }}>
+            <span style={{ fontSize: '16px' }}>👤</span>
+            <span style={{ 
+              color: isDarkMode ? '#f9fafb' : '#1e293b', 
+              fontWeight: '600',
+              fontSize: '14px'
+            }}>
+              Admin User
+            </span>
+            
+            {/* Dark Mode Toggle Button */}
+            <button
+              onClick={toggleDarkMode}
+              style={{
+                background: isDarkMode ? '#374151' : '#f3f4f6',
+                color: isDarkMode ? '#f9fafb' : '#374151',
+                  border: 'none',
+                borderRadius: '50px',
+                padding: '6px 12px',
+                  cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                transition: 'all 0.3s ease',
+                boxShadow: isDarkMode
+                  ? '0 2px 4px rgba(0, 0, 0, 0.3)'
+                  : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                marginLeft: '8px'
+              }}
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              <span style={{ fontSize: '14px' }}>
+                {isDarkMode ? '🌙' : '☀️'}
+              </span>
+              <span>
+                {isDarkMode ? 'Dark' : 'Light'}
+              </span>
+            </button>
+              </div>
+        </div>
         {section === "analytics" && (
           <div>
-            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Analytics</h2>
-            <div style={{ display: 'flex', gap: 32, marginBottom: 32 }}>
-              <div style={{ background: '#e0e7ef', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', padding: 24, minWidth: 180, textAlign: 'center', color: '#222' }}>
-                <div style={{ fontSize: 18, fontWeight: 600, color: '#555' }}>Users</div>
-                <div style={{ fontSize: 32, fontWeight: 700 }}>{stats.userCount}</div>
-              </div>
-              <div style={{ background: '#e0e7ef', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', padding: 24, minWidth: 180, textAlign: 'center', color: '#222' }}>
-                <div style={{ fontSize: 18, fontWeight: 600, color: '#555' }}>Drafts</div>
-                <div style={{ fontSize: 32, fontWeight: 700 }}>{stats.draftCount}</div>
-              </div>
-            </div>
-            {/* Plan Details Section - Modern Pricing Cards (Neutral Theme) */}
-            <div style={{
-              display: 'flex',
-              gap: 32,
-              marginBottom: 32,
-              justifyContent: 'center'
+              <div style={{
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '24px', 
+              marginBottom: '32px' 
             }}>
-              {/* Basic Plan Card */}
-              <div style={{
-                flex: 1,
-                background: 'linear-gradient(135deg, #e0e7ef 0%, #f5f7fa 100%)',
-                borderRadius: 20,
-                boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-                padding: 32,
-                minWidth: 260,
-                color: '#222',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}>
-                <h2 style={{ fontWeight: 700, letterSpacing: 1 }}>BASIC</h2>
                 <div style={{
-                  fontSize: 36,
-                  fontWeight: 800,
-                  margin: '16px 0'
-                }}>$0</div>
-                <div style={{ marginBottom: 24, fontSize: 16, color: '#555' }}>Per Month</div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#222', fontSize: 16, textAlign: 'left' }}>
-                  <li>✔ Save up to 3 drafts</li>
-                  <li>✔ Access to basic features</li>
-                  <li>✖ No advanced analytics</li>
-                  <li>✖ No priority support</li>
-                </ul>
-                <button style={{
-                  marginTop: 24,
-                  background: '#e0e7ef',
-                  color: '#222',
-                  border: 'none',
-                  borderRadius: 24,
-                  padding: '10px 32px',
-                  fontWeight: 700,
-                  fontSize: 16,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                }}>BUY NOW</button>
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', 
+                borderRadius: 16, 
+                boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)', 
+                padding: '24px', 
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '-10px', 
+                  right: '-10px', 
+                  fontSize: '48px', 
+                  opacity: '0.2' 
+                }}>
+                  👥
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', opacity: '0.9' }}>Total Users</div>
+                <div style={{ fontSize: '32px', fontWeight: '800', marginBottom: '4px' }}>{stats.userCount}</div>
+                <div style={{ fontSize: '12px', opacity: '0.8' }}>Active accounts</div>
               </div>
-              {/* Pro Plan Card */}
-              <div style={{
-                flex: 1,
-                background: 'linear-gradient(135deg, #d1e7dd 0%, #e0e7ef 100%)',
-                borderRadius: 20,
-                boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-                padding: 32,
-                minWidth: 260,
-                color: '#222',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
+              
+              <div style={{ 
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
+                borderRadius: 16, 
+                boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3)', 
+                padding: '24px', 
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden'
               }}>
-                <h2 style={{ fontWeight: 700, letterSpacing: 1 }}>PRO</h2>
-                <div style={{
-                  fontSize: 36,
-                  fontWeight: 800,
-                  margin: '16px 0'
-                }}>$10</div>
-                <div style={{ marginBottom: 24, fontSize: 16, color: '#555' }}>Per Month</div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#222', fontSize: 16, textAlign: 'left' }}>
-                  <li>✔ Save up to 6 drafts</li>
-                  <li>✔ Access to all features</li>
-                  <li>✔ Basic analytics</li>
-                  <li>✖ No priority support</li>
-                </ul>
-                <button style={{
-                  marginTop: 24,
-                  background: '#d1e7dd',
-                  color: '#222',
-                  border: 'none',
-                  borderRadius: 24,
-                  padding: '10px 32px',
-                  fontWeight: 700,
-                  fontSize: 16,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                }}>BUY NOW</button>
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '-10px', 
+                  right: '-10px', 
+                  fontSize: '48px', 
+                  opacity: '0.2' 
+                }}>
+                  📝
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', opacity: '0.9' }}>Total Drafts</div>
+                <div style={{ fontSize: '32px', fontWeight: '800', marginBottom: '4px' }}>{stats.draftCount}</div>
+                <div style={{ fontSize: '12px', opacity: '0.8' }}>Saved designs</div>
               </div>
-              {/* Pro Max Plan Card */}
-              <div style={{
-                flex: 1,
-                background: 'linear-gradient(135deg, #f5e6fa 0%, #e0e7ef 100%)',
-                borderRadius: 20,
-                boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-                padding: 32,
-                minWidth: 260,
-                color: '#222',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
+              
+              <div style={{ 
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', 
+                borderRadius: 16, 
+                boxShadow: '0 4px 20px rgba(245, 158, 11, 0.3)', 
+                padding: '24px', 
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden'
               }}>
-                <h2 style={{ fontWeight: 700, letterSpacing: 1 }}>PRO MAX</h2>
-                <div style={{
-                  fontSize: 36,
-                  fontWeight: 800,
-                  margin: '16px 0'
-                }}>$30</div>
-                <div style={{ marginBottom: 24, fontSize: 16, color: '#555' }}>Per Month</div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#222', fontSize: 16, textAlign: 'left' }}>
-                  <li>✔ Unlimited drafts</li>
-                  <li>✔ All features unlocked</li>
-                  <li>✔ Advanced analytics</li>
-                  <li>✔ Priority support</li>
-                </ul>
-                <button style={{
-                  marginTop: 24,
-                  background: '#f5e6fa',
-                  color: '#222',
-                  border: 'none',
-                  borderRadius: 24,
-                  padding: '10px 32px',
-                  fontWeight: 700,
-                  fontSize: 16,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                }}>BUY NOW</button>
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '-10px', 
+                  right: '-10px', 
+                  fontSize: '48px', 
+                  opacity: '0.2' 
+                }}>
+                  ⬆️
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', opacity: '0.9' }}>Upgrade Requests</div>
+                <div style={{ fontSize: '32px', fontWeight: '800', marginBottom: '4px' }}>{upgradeRequests.filter(r => r.status === 'pending').length}</div>
+                <div style={{ fontSize: '12px', opacity: '0.8' }}>Pending approval</div>
+              </div>
+              
+              <div style={{ 
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', 
+                borderRadius: 16, 
+                boxShadow: '0 4px 20px rgba(139, 92, 246, 0.3)', 
+                padding: '24px', 
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '-10px', 
+                  right: '-10px', 
+                  fontSize: '48px', 
+                  opacity: '0.2' 
+                }}>
+                  🎨
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', opacity: '0.9' }}>Decorations</div>
+                <div style={{ fontSize: '32px', fontWeight: '800', marginBottom: '4px' }}>{decorations.length}</div>
+                <div style={{ fontSize: '12px', opacity: '0.8' }}>Active elements</div>
               </div>
             </div>
             {/* Add more analytics here */}
@@ -445,100 +566,455 @@ function AdminPage() {
         )}
         {section === "users" && (
           <section>
-            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>User Management</h2>
-            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse', marginBottom: 8 }}>
-              <thead>
-                <tr style={{ background: '#e0e7ef' }}>
-                  <th style={{ padding: 10, borderRadius: 8, textAlign: 'left', color: '#333' }}>Email</th>
-                  <th style={{ padding: 10, borderRadius: 8, color: '#333' }}>Admin</th>
-                  <th style={{ padding: 10, borderRadius: 8, color: '#333' }}>Plan</th>
-                  <th style={{ padding: 10, borderRadius: 8, color: '#333' }}>Created At</th>
-                  <th style={{ padding: 10, borderRadius: 8, color: '#333' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(user => (
-                  <tr key={user.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
-                    <td style={{ padding: 10, color: '#222' }}>{user.email}</td>
-                    <td style={{ padding: 10, textAlign: 'center' }}>{user.isAdmin ? '\u2714\ufe0f' : ''}</td>
-                    <td style={{ padding: 10, textAlign: 'center' }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              marginBottom: '24px' 
+            }}>
+              <div>
+                <h2 style={{ 
+                  color: isDarkMode ? '#f9fafb' : '#1e293b', 
+                  fontSize: '24px', 
+                  marginBottom: '8px',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <span style={{ fontSize: '20px' }}>👥</span>
+                  User Management
+                </h2>
+                <div style={{ color: isDarkMode ? '#d1d5db' : '#64748b', fontSize: '14px' }}>
+                  Manage user accounts, permissions, and subscription plans
+                </div>
+              </div>
+              <div style={{
+                background: isDarkMode ? '#374151' : '#ffffff',
+                padding: '8px 16px',
+                borderRadius: '12px',
+                boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.08)',
+                border: isDarkMode ? '1px solid #4b5563' : '1px solid #e2e8f0',
+                color: isDarkMode ? '#f9fafb' : '#1e293b',
+                fontWeight: '600',
+                fontSize: '14px'
+              }}>
+                {users.length} Total Users
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: isDarkMode ? '#1f2937' : '#ffffff', 
+              borderRadius: '16px', 
+              boxShadow: isDarkMode ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.08)', 
+              overflow: 'hidden',
+              border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0'
+            }}>
+              <div style={{ 
+                background: isDarkMode ? '#111827' : '#f8fafc', 
+                padding: '20px 24px',
+                borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0',
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr',
+                gap: '16px',
+                fontWeight: '600',
+                color: isDarkMode ? '#d1d5db' : '#475569',
+                fontSize: '14px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>📧</span>
+                  Email
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>👑</span>
+                  Admin
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>💎</span>
+                  Plan
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>📅</span>
+                  Created
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>⚙️</span>
+                  Actions
+                </div>
+              </div>
+              
+              <div>
+                {users.map((user, index) => (
+                  <div key={user.id} style={{ 
+                    padding: '20px 24px',
+                    borderBottom: index < users.length - 1 ? (isDarkMode ? '1px solid #374151' : '1px solid #f1f5f9') : 'none',
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr',
+                    gap: '16px',
+                    alignItems: 'center',
+                    transition: 'background-color 0.2s ease',
+                    background: isDarkMode ? '#1f2937' : 'transparent',
+                    ':hover': { background: isDarkMode ? '#374151' : '#f8fafc' }
+                  }}>
+                    <div style={{ 
+                      color: isDarkMode ? '#f9fafb' : '#1e293b', 
+                      fontWeight: '500',
+                      fontSize: '14px'
+                    }}>
+                      {user.email}
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      {user.isAdmin ? (
+                        <span style={{
+                          background: '#3b82f6',
+                          color: '#ffffff',
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          Admin
+                        </span>
+                      ) : (
+                        <span style={{
+                          background: isDarkMode ? '#374151' : '#f1f5f9',
+                          color: isDarkMode ? '#d1d5db' : '#64748b',
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          User
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
                       <select
                         value={user.plan || 'basic'}
                         onChange={e => handleChangePlan(user.email, e.target.value)}
-                        style={{ padding: '4px 8px', borderRadius: 4, background: '#e0e7ef', color: '#222', border: '1px solid #555' }}
+                        style={{ 
+                          padding: '6px 12px', 
+                          borderRadius: '8px', 
+                          background: isDarkMode ? '#374151' : '#ffffff', 
+                          color: isDarkMode ? '#f9fafb' : '#1e293b', 
+                          border: isDarkMode ? '1px solid #4b5563' : '1px solid #d1d5db',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          cursor: 'pointer'
+                        }}
                       >
                         <option value="basic">Basic</option>
                         <option value="pro">Pro</option>
                         <option value="pro_max">Pro Max</option>
                       </select>
-                    </td>
-                    <td style={{ padding: 10 }}>{user.created_at ? new Date(user.created_at).toLocaleDateString() : ''}</td>
-                    <td style={{ padding: 10, textAlign: 'center' }}>
-                      <button onClick={() => handlePromote(user.id, user.isAdmin)} style={{ marginRight: 8, padding: '4px 10px', borderRadius: 4, border: 'none', background: user.isAdmin ? '#555' : '#43cea2', color: '#fff', cursor: 'pointer' }}>
+                    </div>
+                    <div style={{ 
+                      color: isDarkMode ? '#9ca3af' : '#64748b', 
+                      fontSize: '13px',
+                      textAlign: 'center'
+                    }}>
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '8px', 
+                      justifyContent: 'center' 
+                    }}>
+                      <button 
+                        onClick={() => handlePromote(user.id, user.isAdmin)} 
+                        style={{ 
+                          padding: '6px 12px', 
+                          borderRadius: '8px', 
+                          border: 'none', 
+                          background: user.isAdmin ? '#64748b' : '#10b981', 
+                          color: '#ffffff', 
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
                         {user.isAdmin ? 'Demote' : 'Promote'}
                       </button>
-                      <button onClick={() => handleDeleteUser(user.email)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Delete</button>
-                    </td>
-                  </tr>
+                      <button 
+                        onClick={() => handleDeleteUser(user.email)} 
+                        style={{ 
+                          padding: '6px 12px', 
+                          borderRadius: '8px', 
+                          border: 'none', 
+                          background: '#ef4444', 
+                          color: '#ffffff', 
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
           </section>
         )}
         {section === "upgrade_requests" && (
           <section>
-            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Upgrade Requests</h2>
-            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#e0e7ef' }}>
-                  <th style={{ padding: 10 }}>User Email</th>
-                  <th style={{ padding: 10 }}>Requested Plan</th>
-                  <th style={{ padding: 10 }}>Status</th>
-                  <th style={{ padding: 10 }}>Requested At</th>
-                  <th style={{ padding: 10 }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {upgradeRequests.map(req => (
-                  <tr key={req.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
-                    <td style={{ padding: 10 }}>{req.email}</td>
-                    <td style={{ padding: 10 }}>{req.requested_plan}</td>
-                    <td style={{ padding: 10, color: req.status === 'pending' ? '#f5c518' : req.status === 'approved' ? '#43cea2' : '#ee0979', fontWeight: 600 }}>{req.status.charAt(0).toUpperCase() + req.status.slice(1)}</td>
-                    <td style={{ padding: 10 }}>{new Date(req.created_at).toLocaleString()}</td>
-                    <td style={{ padding: 10 }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              marginBottom: '24px' 
+            }}>
+              <div>
+                <h2 style={{ 
+                  color: isDarkMode ? '#f9fafb' : '#1e293b', 
+                  fontSize: '24px', 
+                  marginBottom: '8px',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <span style={{ fontSize: '20px' }}>⬆️</span>
+                  Upgrade Requests
+                </h2>
+                <div style={{ color: isDarkMode ? '#d1d5db' : '#64748b', fontSize: '14px' }}>
+                  Review and manage user plan upgrade requests
+                </div>
+              </div>
+              <div style={{
+                background: isDarkMode ? '#374151' : '#ffffff',
+                padding: '8px 16px',
+                borderRadius: '12px',
+                boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.08)',
+                border: isDarkMode ? '1px solid #4b5563' : '1px solid #e2e8f0',
+                color: isDarkMode ? '#f9fafb' : '#1e293b',
+                fontWeight: '600',
+                fontSize: '14px'
+              }}>
+                {upgradeRequests.filter(r => r.status === 'pending').length} Pending
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: isDarkMode ? '#1f2937' : '#ffffff', 
+              borderRadius: '16px', 
+              boxShadow: isDarkMode ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.08)', 
+              overflow: 'hidden',
+              border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0'
+            }}>
+              <div style={{ 
+                background: isDarkMode ? '#111827' : '#f8fafc', 
+                padding: '20px 24px',
+                borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0',
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr',
+                gap: '16px',
+                fontWeight: '600',
+                color: isDarkMode ? '#d1d5db' : '#475569',
+                fontSize: '14px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>👤</span>
+                  User Email
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>💎</span>
+                  Requested Plan
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>📊</span>
+                  Status
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>📅</span>
+                  Requested At
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>⚙️</span>
+                  Actions
+                </div>
+              </div>
+              
+              <div>
+                {upgradeRequests.map((req, index) => (
+                  <div key={req.id} style={{ 
+                    padding: '20px 24px',
+                    borderBottom: index < upgradeRequests.length - 1 ? (isDarkMode ? '1px solid #374151' : '1px solid #f1f5f9') : 'none',
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 1fr 1fr 1.5fr 1.5fr',
+                    gap: '16px',
+                    alignItems: 'center',
+                    background: isDarkMode ? '#1f2937' : 'transparent'
+                  }}>
+                    <div style={{ 
+                      color: isDarkMode ? '#f9fafb' : '#1e293b', 
+                      fontWeight: '500',
+                      fontSize: '14px'
+                    }}>
+                      {req.userEmail}
+                    </div>
+                    <div style={{ 
+                      textAlign: 'center',
+                      fontWeight: '600',
+                      fontSize: '13px',
+                      color: isDarkMode ? '#f9fafb' : '#1e293b'
+                    }}>
+                      {req.requestedPlan || 'N/A'}
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      {req.status === 'pending' ? (
+                        <span style={{
+                          background: '#f59e0b',
+                          color: '#ffffff',
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          Pending
+                        </span>
+                      ) : req.status === 'approved' ? (
+                        <span style={{
+                          background: '#10b981',
+                          color: '#ffffff',
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          Approved
+                        </span>
+                      ) : (
+                        <span style={{
+                          background: '#ef4444',
+                          color: '#ffffff',
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          Rejected
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ 
+                      color: isDarkMode ? '#9ca3af' : '#64748b', 
+                      fontSize: '13px',
+                      textAlign: 'center'
+                    }}>
+                      {new Date(req.created_at).toLocaleString()}
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '8px', 
+                      justifyContent: 'center' 
+                    }}>
                       {req.status === 'pending' ? (
                         <>
-                          <button onClick={() => handleApproveUpgrade(req.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#388e3c', color: '#fff', cursor: 'pointer', marginRight: 8 }}>Approve</button>
-                          <button onClick={() => handleRejectUpgrade(req.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Reject</button>
+                          <button 
+                            onClick={() => handleApproveUpgrade(req.id)} 
+                            style={{ 
+                              padding: '6px 12px', 
+                              borderRadius: '8px', 
+                              border: 'none', 
+                              background: '#10b981', 
+                              color: '#ffffff', 
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            Approve
+                          </button>
+                          <button 
+                            onClick={() => handleRejectUpgrade(req.id)} 
+                            style={{ 
+                              padding: '6px 12px', 
+                              borderRadius: '8px', 
+                              border: 'none', 
+                              background: '#ef4444', 
+                              color: '#ffffff', 
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            Reject
+                          </button>
                         </>
                       ) : (
-                        <span style={{ color: '#888' }}>—</span>
+                        <span style={{ color: '#94a3b8', fontSize: '13px' }}>—</span>
                       )}
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
           </section>
         )}
         {section === "drafts" && (
           <section>
-            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Draft Management</h2>
-            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse' }}>
+            <h2 style={{ 
+              color: isDarkMode ? '#f9fafb' : '#333', 
+              fontSize: 22, 
+              marginBottom: 16 
+            }}>Draft Management</h2>
+            <table style={{ 
+              width: '100%', 
+              background: isDarkMode ? '#1f2937' : '#e0e7ef', 
+              borderRadius: 8, 
+              boxShadow: isDarkMode ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.18)', 
+              borderCollapse: 'collapse',
+              border: isDarkMode ? '1px solid #374151' : 'none'
+            }}>
               <thead>
-                <tr style={{ background: '#e0e7ef' }}>
-                  <th style={{ padding: 10, borderRadius: 8, textAlign: 'left' }}>User Email</th>
-                  <th style={{ padding: 10, borderRadius: 8 }}>Created At</th>
-                  <th style={{ padding: 10, borderRadius: 8 }}>Actions</th>
+                <tr style={{ background: isDarkMode ? '#111827' : '#e0e7ef' }}>
+                  <th style={{ 
+                    padding: 10, 
+                    borderRadius: 8, 
+                    textAlign: 'left',
+                    color: isDarkMode ? '#f9fafb' : '#333'
+                  }}>User Email</th>
+                  <th style={{ 
+                    padding: 10, 
+                    borderRadius: 8,
+                    color: isDarkMode ? '#f9fafb' : '#333'
+                  }}>Created At</th>
+                  <th style={{ 
+                    padding: 10, 
+                    borderRadius: 8,
+                    color: isDarkMode ? '#f9fafb' : '#333'
+                  }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {drafts.map(draft => (
-                  <tr key={draft.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
-                    <td style={{ padding: 10 }}>{draft.user_email}</td>
-                    <td style={{ padding: 10 }}>{new Date(draft.created_at).toLocaleDateString()}</td>
+                  <tr key={draft.id} style={{ 
+                    borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e0e7ef',
+                    background: isDarkMode ? '#1f2937' : 'transparent'
+                  }}>
+                    <td style={{ 
+                      padding: 10,
+                      color: isDarkMode ? '#f9fafb' : '#333'
+                    }}>{draft.user_email}</td>
+                    <td style={{ 
+                      padding: 10,
+                      color: isDarkMode ? '#d1d5db' : '#333'
+                    }}>{new Date(draft.created_at).toLocaleDateString()}</td>
                     <td style={{ padding: 10, textAlign: 'center' }}>
-                      <button onClick={() => handleDeleteDraft(draft.id, draft.user_email)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Delete</button>
+                      <button onClick={() => handleDeleteDraft(draft.id, draft.user_email)} style={{ 
+                        padding: '4px 10px', 
+                        borderRadius: 4, 
+                        border: 'none', 
+                        background: '#d32f2f', 
+                        color: '#fff', 
+                        cursor: 'pointer' 
+                      }}>Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -548,12 +1024,34 @@ function AdminPage() {
         )}
         {section === "decorations" && (
           <section>
-            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Decoration Management</h2>
-            <button onClick={() => setShowAddDecoration(true)} style={{ marginBottom: 16, padding: '8px 20px', borderRadius: 6, background: '#43cea2', color: '#181a20', border: 'none', fontWeight: 600 }}>Add New Decoration</button>
+            <h2 style={{ 
+              color: isDarkMode ? '#f9fafb' : '#333', 
+              fontSize: 22, 
+              marginBottom: 16 
+            }}>Decoration Management</h2>
+            <button onClick={() => setShowAddDecoration(true)} style={{ 
+              marginBottom: 16, 
+              padding: '8px 20px', 
+              borderRadius: 6, 
+              background: '#43cea2', 
+              color: '#181a20', 
+              border: 'none', 
+              fontWeight: 600 
+            }}>Add New Decoration</button>
             {/* Add Decoration Modal/Form */}
             {showAddDecoration && (
-              <div style={{ background: '#e0e7ef', borderRadius: 8, padding: 24, marginBottom: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}>
-                <h3 style={{ marginBottom: 12 }}>Add Decoration</h3>
+              <div style={{ 
+                background: isDarkMode ? '#1f2937' : '#e0e7ef', 
+                borderRadius: 8, 
+                padding: 24, 
+                marginBottom: 24, 
+                boxShadow: isDarkMode ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.18)',
+                border: isDarkMode ? '1px solid #374151' : 'none'
+              }}>
+                <h3 style={{ 
+                  marginBottom: 12,
+                  color: isDarkMode ? '#f9fafb' : '#333'
+                }}>Add Decoration</h3>
                 <form onSubmit={handleAddDecoration}>
                   <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
                     <input
@@ -562,7 +1060,14 @@ function AdminPage() {
                       value={newDecoration.name}
                       onChange={e => setNewDecoration(d => ({ ...d, name: e.target.value }))}
                       required
-                      style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
+                      style={{ 
+                        flex: 1, 
+                        padding: 8, 
+                        borderRadius: 4, 
+                        border: isDarkMode ? '1px solid #4b5563' : '1px solid #555', 
+                        background: isDarkMode ? '#374151' : '#e0e7ef', 
+                        color: isDarkMode ? '#f9fafb' : '#222' 
+                      }}
                     />
                     <input
                       type="text"
@@ -570,7 +1075,14 @@ function AdminPage() {
                       value={newDecoration.category}
                       onChange={e => setNewDecoration(d => ({ ...d, category: e.target.value }))}
                       required
-                      style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
+                      style={{ 
+                        flex: 1, 
+                        padding: 8, 
+                        borderRadius: 4, 
+                        border: isDarkMode ? '1px solid #4b5563' : '1px solid #555', 
+                        background: isDarkMode ? '#374151' : '#e0e7ef', 
+                        color: isDarkMode ? '#f9fafb' : '#222' 
+                      }}
                     />
                     <input
                       type="text"
@@ -578,7 +1090,14 @@ function AdminPage() {
                       value={newDecoration.image}
                       onChange={e => setNewDecoration(d => ({ ...d, image: e.target.value }))}
                       required
-                      style={{ flex: 2, padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
+                      style={{ 
+                        flex: 2, 
+                        padding: 8, 
+                        borderRadius: 4, 
+                        border: isDarkMode ? '1px solid #4b5563' : '1px solid #555', 
+                        background: isDarkMode ? '#374151' : '#e0e7ef', 
+                        color: isDarkMode ? '#f9fafb' : '#222' 
+                      }}
                     />
                   </div>
                   <button type="submit" style={{ padding: '8px 24px', borderRadius: 4, background: '#43cea2', color: '#181a20', border: 'none', fontWeight: 600 }}>Add</button>
@@ -586,24 +1105,35 @@ function AdminPage() {
                 </form>
               </div>
             )}
-            <h3 style={{ color: '#333' }}>All Decorations</h3>
-            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse', marginBottom: 24 }}>
+            <h3 style={{ color: isDarkMode ? '#f9fafb' : '#333' }}>All Decorations</h3>
+            <table style={{ 
+              width: '100%', 
+              background: isDarkMode ? '#1f2937' : '#e0e7ef', 
+              borderRadius: 8, 
+              boxShadow: isDarkMode ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.18)', 
+              borderCollapse: 'collapse', 
+              marginBottom: 24,
+              border: isDarkMode ? '1px solid #374151' : 'none'
+            }}>
               <thead>
-                <tr style={{ background: '#e0e7ef' }}>
-                  <th style={{ padding: 10 }}>Image</th>
-                  <th style={{ padding: 10 }}>Name</th>
-                  <th style={{ padding: 10 }}>Category</th>
-                  <th style={{ padding: 10 }}>Status</th>
-                  <th style={{ padding: 10 }}>Actions</th>
+                <tr style={{ background: isDarkMode ? '#111827' : '#e0e7ef' }}>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Image</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Name</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Category</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Status</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {decorations.map(dec => (
-                  <tr key={dec.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
+                  <tr key={dec.id} style={{ 
+                    borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e0e7ef',
+                    background: isDarkMode ? '#1f2937' : 'transparent'
+                  }}>
                     <td style={{ padding: 10 }}><img src={dec.image} alt={dec.name} width={40} /></td>
-                    <td style={{ padding: 10 }}>{dec.name}</td>
-                    <td style={{ padding: 10 }}>{dec.category}</td>
-                    <td style={{ padding: 10 }}>{dec.status}</td>
+                    <td style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>{dec.name}</td>
+                    <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{dec.category}</td>
+                    <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{dec.status}</td>
                     <td style={{ padding: 10 }}>
                       <button onClick={() => handleDeleteDecoration(dec.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Delete</button>
                     </td>
@@ -611,22 +1141,32 @@ function AdminPage() {
                 ))}
               </tbody>
             </table>
-            <h3 style={{ color: '#333' }}>Pending Approval</h3>
-            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse' }}>
+            <h3 style={{ color: isDarkMode ? '#f9fafb' : '#333' }}>Pending Approval</h3>
+            <table style={{ 
+              width: '100%', 
+              background: isDarkMode ? '#1f2937' : '#e0e7ef', 
+              borderRadius: 8, 
+              boxShadow: isDarkMode ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.18)', 
+              borderCollapse: 'collapse',
+              border: isDarkMode ? '1px solid #374151' : 'none'
+            }}>
               <thead>
-                <tr style={{ background: '#e0e7ef' }}>
-                  <th style={{ padding: 10 }}>Image</th>
-                  <th style={{ padding: 10 }}>Name</th>
-                  <th style={{ padding: 10 }}>Category</th>
-                  <th style={{ padding: 10 }}>Actions</th>
+                <tr style={{ background: isDarkMode ? '#111827' : '#e0e7ef' }}>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Image</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Name</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Category</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {pendingDecorations.map(dec => (
-                  <tr key={dec.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
+                  <tr key={dec.id} style={{ 
+                    borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e0e7ef',
+                    background: isDarkMode ? '#1f2937' : 'transparent'
+                  }}>
                     <td style={{ padding: 10 }}><img src={dec.image} alt={dec.name} width={40} /></td>
-                    <td style={{ padding: 10 }}>{dec.name}</td>
-                    <td style={{ padding: 10 }}>{dec.category}</td>
+                    <td style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>{dec.name}</td>
+                    <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{dec.category}</td>
                     <td style={{ padding: 10 }}>
                       <button onClick={() => handleApproveDecoration(dec)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#388e3c', color: '#fff', cursor: 'pointer', marginRight: 8 }}>Approve</button>
                       <button onClick={() => handleRejectDecoration(dec.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Reject</button>
@@ -639,25 +1179,25 @@ function AdminPage() {
         )}
         {section === "moderation" && (
           <section>
-            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Moderation</h2>
-            <div style={{ color: '#888', fontSize: 15 }}>Feature coming soon: Review flagged content, ban words/images.</div>
+            <h2 style={{ color: isDarkMode ? '#f9fafb' : '#333', fontSize: 22, marginBottom: 16 }}>Moderation</h2>
+            <div style={{ color: isDarkMode ? '#d1d5db' : '#888', fontSize: 15 }}>Feature coming soon: Review flagged content, ban words/images.</div>
           </section>
         )}
         {section === "settings" && (
           <section>
-            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Settings</h2>
-            <div style={{ color: '#888', fontSize: 15 }}>Feature coming soon: App configuration, maintenance mode, announcements.</div>
+            <h2 style={{ color: isDarkMode ? '#f9fafb' : '#333', fontSize: 22, marginBottom: 16 }}>Settings</h2>
+            <div style={{ color: isDarkMode ? '#d1d5db' : '#888', fontSize: 15 }}>Feature coming soon: App configuration, maintenance mode, announcements.</div>
           </section>
         )}
         {section === "feedback" && (
           <section>
-            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Feedback</h2>
-            <div style={{ color: '#888', fontSize: 15 }}>Feature coming soon: View user feedback and respond.</div>
+            <h2 style={{ color: isDarkMode ? '#f9fafb' : '#333', fontSize: 22, marginBottom: 16 }}>Feedback</h2>
+            <div style={{ color: isDarkMode ? '#d1d5db' : '#888', fontSize: 15 }}>Feature coming soon: View user feedback and respond.</div>
           </section>
         )}
         {section === "alerts" && (
           <section>
-            <h2 style={{ color: '#333', fontSize: 22, marginBottom: 16 }}>Alerts / Notifications</h2>
+            <h2 style={{ color: isDarkMode ? '#f9fafb' : '#333', fontSize: 22, marginBottom: 16 }}>Alerts / Notifications</h2>
             {/* Create Alert Form */}
             <form
               onSubmit={e => {
@@ -668,7 +1208,14 @@ function AdminPage() {
                 ]);
                 setNewAlert({ title: "", message: "", type: "info", audience: "All" });
               }}
-              style={{ background: '#e0e7ef', borderRadius: 8, padding: 24, marginBottom: 32, boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}
+              style={{ 
+                background: isDarkMode ? '#1f2937' : '#e0e7ef', 
+                borderRadius: 8, 
+                padding: 24, 
+                marginBottom: 32, 
+                boxShadow: isDarkMode ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.18)',
+                border: isDarkMode ? '1px solid #374151' : 'none'
+              }}
             >
               <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
                 <input
@@ -677,12 +1224,25 @@ function AdminPage() {
                   value={newAlert.title}
                   onChange={e => setNewAlert(a => ({ ...a, title: e.target.value }))}
                   required
-                  style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
+                  style={{ 
+                    flex: 1, 
+                    padding: 8, 
+                    borderRadius: 4, 
+                    border: isDarkMode ? '1px solid #4b5563' : '1px solid #555', 
+                    background: isDarkMode ? '#374151' : '#e0e7ef', 
+                    color: isDarkMode ? '#f9fafb' : '#222' 
+                  }}
                 />
                 <select
                   value={newAlert.type}
                   onChange={e => setNewAlert(a => ({ ...a, type: e.target.value }))}
-                  style={{ padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
+                  style={{ 
+                    padding: 8, 
+                    borderRadius: 4, 
+                    border: isDarkMode ? '1px solid #4b5563' : '1px solid #555', 
+                    background: isDarkMode ? '#374151' : '#e0e7ef', 
+                    color: isDarkMode ? '#f9fafb' : '#222' 
+                  }}
                 >
                   <option value="info">Info</option>
                   <option value="warning">Warning</option>
@@ -692,7 +1252,13 @@ function AdminPage() {
                 <select
                   value={newAlert.audience}
                   onChange={e => setNewAlert(a => ({ ...a, audience: e.target.value }))}
-                  style={{ padding: 8, borderRadius: 4, border: '1px solid #555', background: '#e0e7ef', color: '#222' }}
+                  style={{ 
+                    padding: 8, 
+                    borderRadius: 4, 
+                    border: isDarkMode ? '1px solid #4b5563' : '1px solid #555', 
+                    background: isDarkMode ? '#374151' : '#e0e7ef', 
+                    color: isDarkMode ? '#f9fafb' : '#222' 
+                  }}
                 >
                   <option value="All">All Users</option>
                   <option value="Admins">Admins Only</option>
@@ -703,35 +1269,56 @@ function AdminPage() {
                 value={newAlert.message}
                 onChange={e => setNewAlert(a => ({ ...a, message: e.target.value }))}
                 required
-                style={{ width: '100%', minHeight: 60, padding: 8, borderRadius: 4, border: '1px solid #555', marginBottom: 12, background: '#e0e7ef', color: '#222' }}
+                style={{ 
+                  width: '100%', 
+                  padding: 8, 
+                  borderRadius: 4, 
+                  border: isDarkMode ? '1px solid #4b5563' : '1px solid #555', 
+                  background: isDarkMode ? '#374151' : '#e0e7ef', 
+                  color: isDarkMode ? '#f9fafb' : '#222',
+                  minHeight: '80px',
+                  resize: 'vertical'
+                }}
               />
-              <button type="submit" style={{ padding: '8px 24px', borderRadius: 4, background: '#43cea2', color: '#181a20', border: 'none', fontWeight: 600, fontSize: 16 }}>Send Alert</button>
+              <button type="submit" style={{ marginTop: 12, padding: '8px 24px', borderRadius: 4, background: '#43cea2', color: '#181a20', border: 'none', fontWeight: 600 }}>Create Alert</button>
             </form>
             {/* Alerts List */}
-            <table style={{ width: '100%', background: '#e0e7ef', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.18)', borderCollapse: 'collapse' }}>
+            <table style={{ 
+              width: '100%', 
+              background: isDarkMode ? '#1f2937' : '#e0e7ef', 
+              borderRadius: 8, 
+              boxShadow: isDarkMode ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.18)', 
+              borderCollapse: 'collapse',
+              border: isDarkMode ? '1px solid #374151' : 'none'
+            }}>
               <thead>
-                <tr style={{ background: '#e0e7ef' }}>
-                  <th style={{ padding: 10 }}>Title</th>
-                  <th style={{ padding: 10 }}>Type</th>
-                  <th style={{ padding: 10 }}>Audience</th>
-                  <th style={{ padding: 10 }}>Date</th>
-                  <th style={{ padding: 10 }}>Status</th>
-                  <th style={{ padding: 10 }}>Actions</th>
+                <tr style={{ background: isDarkMode ? '#111827' : '#e0e7ef' }}>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Title</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Type</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Audience</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Date</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Status</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {alerts.map(alert => (
-                  <tr key={alert.id} style={{ borderBottom: '1px solid #e0e7ef' }}>
-                    <td style={{ padding: 10 }}>{alert.title}</td>
-                    <td style={{ padding: 10 }}>{alert.type}</td>
-                    <td style={{ padding: 10 }}>{alert.audience}</td>
-                    <td style={{ padding: 10 }}>{alert.date}</td>
-                    <td style={{ padding: 10 }}>{alert.status}</td>
+                  <tr key={alert.id} style={{ 
+                    borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e0e7ef',
+                    background: isDarkMode ? '#1f2937' : 'transparent'
+                  }}>
+                    <td style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>{alert.title}</td>
+                    <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{alert.type}</td>
+                    <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{alert.audience}</td>
+                    <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{alert.date}</td>
+                    <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{alert.status}</td>
                     <td style={{ padding: 10 }}>
                       <button
                         onClick={() => setAlerts(prev => prev.filter(a => a.id !== alert.id))}
                         style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}
-                      >Delete</button>
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}

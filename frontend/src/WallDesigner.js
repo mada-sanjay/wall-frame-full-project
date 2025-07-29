@@ -525,39 +525,39 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           <span role="img" aria-label="palette">🎨</span> Wall Designer <span className="pro-badge">Pro</span>
         </div>
         <div className="header-actions">
-          <span className="user-email" style={{ fontSize: '0.95rem', color: '#888', marginRight: 10 }}>{localStorage.getItem("userEmail") || "user@example.com"}</span>
+          <span className="user-email">{localStorage.getItem("userEmail") || "user@example.com"}</span>
           {localStorage.getItem('isAdmin') === '1' && (
             <button className="admin-dashboard" onClick={() => navigate('/admin')}><span style={{ marginRight: 6 }}>🛠️</span>Admin Dashboard</button>
           )}
           {/* Profile button: circular, icon only */}
-          <button className="profile" onClick={handleProfile} style={{ borderRadius: '50%', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, background: '#fff', border: 'none', boxShadow: '0 1px 4px rgba(80,80,120,0.08)' }}>
+          <button className="profile-btn" onClick={handleProfile}>
             <span>👤</span>
           </button>
           <button className="btn-logout" onClick={handleLogout}><span style={{ marginRight: 6 }}>⎋</span>Logout</button>
         </div>
       </div>
       {/* Replace the tabs div and the top control bar with a single flex row */}
-      <div style={{ width: '100%', display: 'flex', alignItems: 'center', margin: '24px 0 16px 0', position: 'relative', zIndex: 10, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(80,80,120,0.06)' }}>
+      <div className="top-control-bar">
         <div style={{ display: 'flex', gap: 3, alignItems: 'center', padding: '0 18px 0 8px' }}>
           <button className={`tab-btn${activeTab === 'design' ? ' active' : ''}`} onClick={() => setActiveTab('design')}><span style={{ marginRight: 6 }}>🎨</span>Design</button>
           <button className={`tab-btn${activeTab === 'decors' ? ' active' : ''}`} onClick={() => setActiveTab('decors')}><span style={{ marginRight: 6 }}>🖼️</span>Decors</button>
           <button className={`tab-btn${activeTab === 'drafts' ? ' active' : ''}`} onClick={() => setActiveTab('drafts')}><span style={{ marginRight: 6 }}>🗂️</span>Drafts</button>
         </div>
-        <div style={{ width: 1, height: 40, background: '#ececec', margin: '0 18px' }} />
+        <div className="divider-line" />
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1, justifyContent: 'flex-start', marginLeft: 24 }}>
-          <button className="action-btn reset-save-btn" style={{ background: '#fff', color: '#7c3aed', border: 'none', borderRadius: '12px', fontWeight: 600, fontSize: 18, padding: '10px 28px', boxShadow: 'none', transition: 'background 0.18s, color 0.18s' }} onMouseOver={e => { e.currentTarget.style.background = '#ede9fe'; e.currentTarget.style.color = '#6d28d9'; }} onMouseOut={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#7c3aed'; }} onClick={handleNewDesign}>
+          <button className="action-btn reset-save-btn" onClick={handleNewDesign}>
             <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>↻</span> Reset View
           </button>
-          <button className="action-btn reset-save-btn" style={{ background: '#fff', color: '#7c3aed', border: 'none', borderRadius: '12px', fontWeight: 600, fontSize: 18, padding: '10px 28px', boxShadow: 'none', transition: 'background 0.18s, color 0.18s' }} onMouseOver={e => { e.currentTarget.style.background = '#ede9fe'; e.currentTarget.style.color = '#6d28d9'; }} onMouseOut={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#7c3aed'; }} onClick={handleSaveDraft}>
+          <button className="action-btn reset-save-btn" onClick={handleSaveDraft}>
             <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>💾</span> {currentDraftId ? 'Update Draft' : 'Save Draft'}
           </button>
         </div>
-        <div style={{ width: 1, height: 40, background: '#ececec', margin: '0 18px' }} />
+        <div className="divider-line" />
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', paddingRight: 18 }}>
-          <button className="action-btn" style={{ background: '#fff', color: '#232946', borderRadius: '12px', boxShadow: 'none', fontWeight: 600, fontSize: 18, padding: '10px 28px', border: 'none', display: 'flex', alignItems: 'center' }} onClick={handleShare}>
+          <button className="action-btn share-btn" onClick={handleShare}>
             <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>🔗</span> Share
           </button>
-          <button className="action-btn" style={{ background: '#a78bfa', color: '#fff', borderRadius: '12px', boxShadow: 'none', fontWeight: 600, fontSize: 18, padding: '10px 28px', border: 'none', display: 'flex', alignItems: 'center' }} onClick={handleDownload}>
+          <button className="action-btn download-btn" onClick={handleDownload}>
             <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>⬇️</span> Download
           </button>
         </div>
@@ -589,7 +589,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                     key={idx}
                     src={img}
                       alt={`Default wall ${idx + 1}`}
-                      style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', border: '2px solid #eee' }}
+                      className="default-wall-image"
                     draggable
                     onDragStart={handleDragStartDefaultImage(img)}
                       onClick={() => { setWallImage(img); }}
@@ -617,7 +617,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                     src={item.url}
                     alt={item.name}
                     title={item.name}
-                      style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 6, cursor: 'pointer', border: '1.5px solid #ececec', background: '#fff', padding: 2 }}
+                    className="decoration-image"
                     onClick={() => {
                       setDecorationOverlays(prev => [
                         ...prev,
@@ -676,7 +676,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                       </div>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button className="action-btn" style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => loadDraft(session)}>Load</button>
-                        <button className="action-btn" style={{ padding: '4px 12px', fontSize: 12, background: '#d32f2f', color: '#fff' }} onClick={() => deleteDraft(session.id)}>Delete</button>
+                        <button className="action-btn delete-btn" onClick={() => deleteDraft(session.id)}>Delete</button>
                       </div>
                     </div>
                   ))}
@@ -700,11 +700,11 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
             ) : (
             <div
               ref={wallRef}
+              className={wallImage ? 'canvas-background-with-image' : 'canvas-background'}
               style={{
                 position: 'relative',
                 width: wallSize.width,
                 height: wallSize.height,
-                background: wallImage ? '#fff' : '#f0f4fa',
                 borderRadius: 8,
                 border: wallImage ? 'none' : '2px dashed #b0b0b0',
                 display: 'flex',
@@ -823,13 +823,10 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
             )}
           </div>
         </div>
-      </div>
+            </div>
       {showShareModal && (
-          <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', zIndex: 9999,
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div style={{ background: '#fff', borderRadius: 12, padding: 32, minWidth: 320, boxShadow: '0 4px 24px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div className="modal-overlay">
+          <div className="share-modal">
             <h3 style={{ marginBottom: 16 }}>Share this draft</h3>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, width: '100%' }}>
               <label style={{ fontWeight: 500, fontSize: 15 }}>
