@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getApiUrl, getAdminApiUrl } from "./config/config";
 
 const SECTIONS = [
   { key: "analytics", label: "Analytics", icon: "📊" },
@@ -72,9 +73,9 @@ function AdminPage() {
   const fetchAdminData = () => {
     const token = localStorage.getItem('token');
     Promise.all([
-      fetch('http://localhost:5000/api/admin/users', { headers: { Authorization: `Bearer ${token}` } }),
-      fetch('http://localhost:5000/api/admin/drafts', { headers: { Authorization: `Bearer ${token}` } }),
-      fetch('http://localhost:5000/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } })
+      fetch(getAdminApiUrl('/users'), { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(getAdminApiUrl('/drafts'), { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(getAdminApiUrl('/stats'), { headers: { Authorization: `Bearer ${token}` } })
     ])
       .then(responses => Promise.all(responses.map(res => res.json())))
       .then(([userRes, draftRes, statsRes]) => {
@@ -97,10 +98,10 @@ function AdminPage() {
   useEffect(() => {
     if (section !== 'decorations') return;
     const token = localStorage.getItem('token');
-    fetch('http://localhost:5000/api/admin/decorations', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(getAdminApiUrl('/decorations'), { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => setDecorations(data.decorations || []));
-    fetch('http://localhost:5000/api/admin/decorations/pending', { headers: { Authorization: `Bearer ${token}` } })
+          fetch(getAdminApiUrl('/decorations/pending'), { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => setPendingDecorations(data.decorations || []));
   }, [section]);
@@ -108,7 +109,7 @@ function AdminPage() {
   // Fetch all user emails for the email notification dropdown
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch('http://localhost:5000/api/admin/user-emails', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(getAdminApiUrl('/user-emails'), { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => setUserEmails(data.emails || []));
   }, []);
@@ -117,7 +118,7 @@ function AdminPage() {
   useEffect(() => {
     if (section !== 'upgrade_requests') return;
     const token = localStorage.getItem('token');
-    fetch('http://localhost:5000/api/admin/upgrade-requests', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(getAdminApiUrl('/upgrade-requests'), { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => {
         setUpgradeRequests(data.requests || []);
@@ -147,7 +148,7 @@ function AdminPage() {
     formData.append('image', file);
     
     const token = localStorage.getItem('token');
-    const response = await fetch('http://localhost:5000/api/admin/upload-image', {
+    const response = await fetch(getAdminApiUrl('/upload-image'), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: formData
@@ -155,7 +156,7 @@ function AdminPage() {
     
     if (response.ok) {
       const data = await response.json();
-      return `http://localhost:5000${data.imageUrl}`;
+      return `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}${data.imageUrl}`;
     } else {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Upload failed');
@@ -176,7 +177,7 @@ function AdminPage() {
       }
       
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/decorations', {
+      const response = await fetch(getAdminApiUrl('/decorations'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ...newDecoration, image: imageUrl })
@@ -202,7 +203,7 @@ function AdminPage() {
   const handleDeleteDecoration = (id) => {
     if (!window.confirm('Delete this decoration?')) return;
     const token = localStorage.getItem('token');
-    fetch(`http://localhost:5000/api/admin/decorations/${id}`, {
+    fetch(getAdminApiUrl(`/decorations/${id}`), {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -212,7 +213,7 @@ function AdminPage() {
   // Approve pending decoration (API)
   const handleApproveDecoration = (dec) => {
     const token = localStorage.getItem('token');
-    fetch(`http://localhost:5000/api/admin/decorations/${dec.id}/approve`, {
+    fetch(getAdminApiUrl(`/decorations/${dec.id}/approve`), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -226,7 +227,7 @@ function AdminPage() {
   // Reject pending decoration (API)
   const handleRejectDecoration = (id) => {
     const token = localStorage.getItem('token');
-    fetch(`http://localhost:5000/api/admin/decorations/${id}/reject`, {
+    fetch(getAdminApiUrl(`/decorations/${id}/reject`), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -236,7 +237,7 @@ function AdminPage() {
   // Promote/demote user
   const handlePromote = (id, isAdmin) => {
     const token = localStorage.getItem("token");
-    fetch(`http://localhost:5000/api/admin/users/${id}/promote`, {
+    fetch(getAdminApiUrl(`/users/${id}/promote`), {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ isAdmin: !isAdmin })
@@ -250,7 +251,7 @@ function AdminPage() {
   // Plan upgrade
   const handleChangePlan = (userEmail, newPlan) => {
     const token = localStorage.getItem('token');
-    fetch('http://localhost:5000/api/admin/update-plan', {
+    fetch(getAdminApiUrl('/update-plan'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ userEmail, newPlan })
@@ -265,7 +266,7 @@ function AdminPage() {
   const handleDeleteUser = (userEmail) => {
     if (!window.confirm('Delete this user?')) return;
     const token = localStorage.getItem('token');
-    fetch('http://localhost:5000/api/admin/delete-account', {
+    fetch(getAdminApiUrl('/delete-account'), {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ userEmail })
@@ -281,7 +282,7 @@ function AdminPage() {
     if (!window.confirm('Delete this draft?')) return;
     const token = localStorage.getItem('token');
     
-    fetch(`http://localhost:5000/api/admin/delete-draft/${draftId}?userEmail=${userEmail}`, {
+    fetch(getAdminApiUrl(`/delete-draft/${draftId}?userEmail=${userEmail}`), {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -310,7 +311,7 @@ function AdminPage() {
     }
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/admin/send-email', {
+      const res = await fetch(getAdminApiUrl('/send-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(emailForm)
@@ -330,7 +331,7 @@ function AdminPage() {
   // Approve/reject handlers
   const handleApproveUpgrade = (id) => {
     const token = localStorage.getItem('token');
-    fetch(`http://localhost:5000/api/admin/upgrade-requests/${id}/approve`, {
+    fetch(getAdminApiUrl(`/upgrade-requests/${id}/approve`), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -339,7 +340,7 @@ function AdminPage() {
   };
   const handleRejectUpgrade = (id) => {
     const token = localStorage.getItem('token');
-    fetch(`http://localhost:5000/api/admin/upgrade-requests/${id}/reject`, {
+    fetch(getAdminApiUrl(`/upgrade-requests/${id}/reject`), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -918,7 +919,7 @@ function AdminPage() {
                       fontWeight: '500',
                       fontSize: '14px'
                     }}>
-                      {req.userEmail}
+                      {req.user_email}
                     </div>
                     <div style={{ 
                       textAlign: 'center',
@@ -1247,8 +1248,8 @@ function AdminPage() {
                     background: isDarkMode ? '#1f2937' : 'transparent'
                   }}>
                     <td style={{ padding: 10 }}>
-                      {dec.image_data ? (
-                        <img src={dec.image_data} alt={dec.name} width={40} />
+                      {dec.image ? (
+                        <img src={dec.image} alt={dec.name} width={40} />
                       ) : (
                         <div style={{ 
                           width: 40, 
@@ -1313,8 +1314,8 @@ function AdminPage() {
                     background: isDarkMode ? '#1f2937' : 'transparent'
                   }}>
                     <td style={{ padding: 10 }}>
-                      {dec.image_data ? (
-                        <img src={dec.image_data} alt={dec.name} width={40} />
+                      {dec.image ? (
+                        <img src={dec.image} alt={dec.name} width={40} />
                       ) : (
                         <div style={{ 
                           width: 40, 

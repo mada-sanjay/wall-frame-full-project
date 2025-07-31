@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getApiUrl } from "./config/config";
 
 function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -45,7 +46,7 @@ function ProfilePage() {
       const token = localStorage.getItem("token");
       let userPlan = "basic";
       try {
-        const res = await fetch("http://localhost:5000/api/me", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(getApiUrl("/me"), { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         if (res.ok && data.user) {
           userPlan = data.user.plan || "basic";
@@ -68,7 +69,7 @@ function ProfilePage() {
       } catch {}
       // Fetch upgrade request status
       try {
-        const res = await fetch("http://localhost:5000/api/upgrade-request/status", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(getApiUrl("/upgrade-request/status"), { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         if (res.ok && data.status) {
           setUpgradeRequestStatus(data.status);
@@ -101,7 +102,7 @@ function ProfilePage() {
       return;
     }
     try {
-      const res = await fetch("http://localhost:5000/api/update-password", {
+      const res = await fetch(getApiUrl("/update-password"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, currentPassword, newPassword })
@@ -130,7 +131,7 @@ function ProfilePage() {
     if (!token) return;
     
     try {
-      const res = await fetch("http://localhost:5000/api/upgrade-request", {
+      const res = await fetch(getApiUrl("/upgrade-request"), {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ requested_plan: nextPlan })
@@ -163,7 +164,7 @@ function ProfilePage() {
     if (!token) return;
     
     try {
-      const res = await fetch("http://localhost:5000/api/upgrade-request/cancel", {
+      const res = await fetch(getApiUrl("/upgrade-request/cancel"), {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
       });

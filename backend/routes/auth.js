@@ -3,23 +3,15 @@ const router = express.Router();
 const db = require('../db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key_change_in_production';
 const { v4: uuidv4 } = require('uuid');
 const { sendEmail } = require('../utils/emailService');
-require('dotenv').config();
-
-// Plan limits from environment variables
-const PLAN_LIMITS = {
-  basic: parseInt(process.env.BASIC_PLAN_DRAFTS) || 3,
-  pro: parseInt(process.env.PRO_PLAN_DRAFTS) || 6,
-  pro_max: parseInt(process.env.PRO_MAX_PLAN_DRAFTS) || 999
-};
+const config = require('../config/config');
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'No token provided' });
-  jwt.verify(token, JWT_SECRET, (err, user) => {
+  jwt.verify(token, config.jwt.secret, (err, user) => {
     if (err) return res.status(403).json({ message: 'Invalid token' });
     req.user = user;
     next();
@@ -28,25 +20,33 @@ function authenticateToken(req, res, next) {
 
 // Register endpoint (with hashing)
 router.post('/register', (req, res) => {
+  console.log('POST /register called with:', { email: req.body.email, password: req.body.password ? '[HIDDEN]' : 'missing' });
   const { email, password } = req.body;
   if (!email || !password) {
+    console.log('Registration failed: Missing fields');
     return res.status(400).json({ message: 'Missing fields' });
   }
 
   // Hash the password before storing
   bcrypt.hash(password, 10, (err, hash) => {
-    if (err) return res.status(500).json({ message: 'Error hashing password' });
+    if (err) {
+      console.error('Registration error - Password hashing failed:', err);
+      return res.status(500).json({ message: 'Error hashing password' });
+    }
 
+    console.log('Password hashed successfully, inserting user...');
     db.query(
       'INSERT INTO users (email, password) VALUES (?, ?)',
       [email, hash],
       (err, results) => {
         if (err) {
+          console.error('Registration error - Database error:', err);
           if (err.code === 'ER_DUP_ENTRY') {
             return res.status(400).json({ message: 'Email already registered' });
           }
-          return res.status(500).json({ message: 'Database error', error: err });
+          return res.status(500).json({ message: 'Database error', error: err.message });
         }
+        console.log('Registration successful for email:', email);
         res.json({ message: 'Registration successful' });
       }
     );
@@ -86,7 +86,7 @@ router.post('/login', (req, res) => {
         if (isMatch) {
           console.log('Login successful with bcrypt for user:', email);
           // Success: login and return token
-          const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
+          const token = jwt.sign({ id: user.id, email: user.email }, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
           // Send login notification email
           sendEmail(email, 'loginNotification')
             .then(() => {
@@ -110,7 +110,7 @@ router.post('/login', (req, res) => {
               }
             });
             // Success: login and return token
-            const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
+            const token = jwt.sign({ id: user.id, email: user.email }, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
             // Send login notification email
             sendEmail(email, 'loginNotification')
               .then(() => {
@@ -222,7 +222,7 @@ router.get('/sessions', authenticateToken, (req, res) => {
     return res.status(400).json({ message: 'Missing user_email' });
   }
   db.query(
-    'SELECT d.id, d.data as session_data, d.createdAt as created_at, CONCAT("share_", d.id) as share_token FROM drafts d JOIN users u ON d.user_id = u.id WHERE u.email = ? ORDER BY d.createdAt DESC',
+    'SELECT d.id, d.data as session_data, d.created_at, CONCAT("share_", d.id) as share_token FROM drafts d JOIN users u ON d.user_id = u.id WHERE u.email = ? ORDER BY d.created_at DESC',
     [user_email],
     (err, results) => {
       if (err) {
@@ -326,7 +326,7 @@ function requireAdmin(req, res, next) {
 router.get('/admin/users', authenticateToken, requireAdmin, (req, res) => {
   console.log('GET /admin/users called');
   db.query(
-    'SELECT id, email, isAdmin, plan, createdAt as created_at FROM users',
+    'SELECT id, email, isAdmin, plan, created_at FROM users',
     (err, results) => {
       if (err) {
         console.error('Error fetching users:', err);
@@ -423,7 +423,7 @@ router.delete('/admin/users/:id', authenticateToken, requireAdmin, (req, res) =>
 router.get('/admin/drafts', authenticateToken, requireAdmin, (req, res) => {
   console.log('GET /admin/drafts called');
   db.query(
-    'SELECT d.id, d.name, u.email as userEmail, d.data as session_data, d.createdAt as created_at FROM drafts d JOIN users u ON d.user_id = u.id ORDER BY d.createdAt DESC',
+    'SELECT d.id, d.name, u.email as userEmail, d.data as session_data, d.created_at FROM drafts d JOIN users u ON d.user_id = u.id ORDER BY d.created_at DESC',
     (err, results) => {
       if (err) {
         console.error('Error fetching drafts:', err);
@@ -535,20 +535,36 @@ router.post('/upgrade-request', authenticateToken, (req, res) => {
   if (!userId || !['pro', 'pro_max'].includes(requested_plan)) {
     return res.status(400).json({ message: 'Invalid request' });
   }
-  // Check for existing pending/approved request
+  
+  // First get the user's email and current plan
   db.query(
-    'SELECT * FROM upgrade_requests WHERE user_id = ? AND status = "pending"',
+    'SELECT email, plan FROM users WHERE id = ?',
     [userId],
-    (err, results) => {
+    (err, userResults) => {
       if (err) return res.status(500).json({ message: 'Database error', error: err });
-      if (results.length) return res.status(400).json({ message: 'You already have a pending upgrade request.' });
+      if (!userResults.length) return res.status(404).json({ message: 'User not found' });
+      
+      const userEmail = userResults[0].email;
+      const currentPlan = userResults[0].plan;
+      
+      // Check for existing pending request
       db.query(
-        'INSERT INTO upgrade_requests (user_id, requested_plan) VALUES (?, ?)',
-        [userId, requested_plan],
-        (err2) => {
+        'SELECT * FROM upgrade_requests WHERE user_email = ? AND status = "pending"',
+        [userEmail],
+        (err2, results) => {
           if (err2) return res.status(500).json({ message: 'Database error', error: err2 });
-          // Optionally notify admin here
-          res.json({ message: 'Upgrade request submitted. Awaiting admin approval.' });
+          if (results.length) return res.status(400).json({ message: 'You already have a pending upgrade request.' });
+          
+          // Insert the upgrade request with the correct fields
+          db.query(
+            'INSERT INTO upgrade_requests (user_email, current_plan, requested_plan) VALUES (?, ?, ?)',
+            [userEmail, currentPlan, requested_plan],
+            (err3) => {
+              if (err3) return res.status(500).json({ message: 'Database error', error: err3 });
+              // Optionally notify admin here
+              res.json({ message: 'Upgrade request submitted. Awaiting admin approval.' });
+            }
+          );
         }
       );
     }
@@ -559,13 +575,26 @@ router.post('/upgrade-request', authenticateToken, (req, res) => {
 router.get('/upgrade-request/status', authenticateToken, (req, res) => {
   const userId = req.user && req.user.id;
   if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  
+  // Get user's email first
   db.query(
-    'SELECT * FROM upgrade_requests WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+    'SELECT email FROM users WHERE id = ?',
     [userId],
-    (err, results) => {
+    (err, userResults) => {
       if (err) return res.status(500).json({ message: 'Database error', error: err });
-      if (!results.length) return res.json({ status: 'none' });
-      res.json({ status: results[0].status, requested_plan: results[0].requested_plan });
+      if (!userResults.length) return res.status(404).json({ message: 'User not found' });
+      
+      const userEmail = userResults[0].email;
+      
+      db.query(
+        'SELECT * FROM upgrade_requests WHERE user_email = ? ORDER BY created_at DESC LIMIT 1',
+        [userEmail],
+        (err2, results) => {
+          if (err2) return res.status(500).json({ message: 'Database error', error: err2 });
+          if (!results.length) return res.json({ status: 'none' });
+          res.json({ status: results[0].status, requested_plan: results[0].requested_plan });
+        }
+      );
     }
   );
 });
@@ -575,15 +604,27 @@ router.post('/upgrade-request/cancel', authenticateToken, (req, res) => {
   const userId = req.user && req.user.id;
   if (!userId) return res.status(401).json({ message: 'Unauthorized' });
   
+  // Get user's email first
   db.query(
-    'UPDATE upgrade_requests SET status = "cancelled" WHERE user_id = ? AND status = "pending"',
+    'SELECT email FROM users WHERE id = ?',
     [userId],
-    (err, result) => {
+    (err, userResults) => {
       if (err) return res.status(500).json({ message: 'Database error', error: err });
-      if (result.affectedRows === 0) {
-        return res.status(400).json({ message: 'No pending upgrade request found to cancel.' });
-      }
-      res.json({ message: 'Upgrade request cancelled successfully.' });
+      if (!userResults.length) return res.status(404).json({ message: 'User not found' });
+      
+      const userEmail = userResults[0].email;
+      
+      db.query(
+        'DELETE FROM upgrade_requests WHERE user_email = ? AND status = "pending"',
+        [userEmail],
+        (err2, result) => {
+          if (err2) return res.status(500).json({ message: 'Database error', error: err2 });
+          if (result.affectedRows === 0) {
+            return res.status(400).json({ message: 'No pending upgrade request found to cancel.' });
+          }
+          res.json({ message: 'Upgrade request cancelled successfully.' });
+        }
+      );
     }
   );
 });
@@ -620,14 +661,9 @@ router.get('/admin/upgrade-requests', authenticateToken, requireAdmin, (req, res
           console.log('Available columns:', columns.map(c => c.Field));
           
           // Build query based on available columns
-          let query = 'SELECT ur.id, ur.user_id, ur.status, ur.createdAt as created_at, u.email as userEmail';
+          let query = 'SELECT ur.id, ur.user_email, ur.current_plan, ur.requested_plan as requestedPlan, ur.status, ur.created_at';
           
-          // Add requested_plan if it exists
-          if (columns.some(c => c.Field === 'requested_plan')) {
-            query += ', ur.requested_plan as requestedPlan';
-          }
-          
-          query += ' FROM upgrade_requests ur JOIN users u ON ur.user_id = u.id ORDER BY ur.createdAt DESC';
+          query += ' FROM upgrade_requests ur ORDER BY ur.created_at DESC';
           
           console.log('Final query:', query);
           
@@ -662,23 +698,17 @@ router.post('/admin/upgrade-requests/:id/approve', authenticateToken, requireAdm
       if (reqRow.status !== 'pending') return res.status(400).json({ message: 'Request already processed' });
       // Approve request and upgrade user
       db.query(
-        'UPDATE upgrade_requests SET status = "approved", updatedAt = NOW() WHERE id = ?',
+        'UPDATE upgrade_requests SET status = "approved", updated_at = NOW() WHERE id = ?',
         [id],
         (err2) => {
           if (err2) return res.status(500).json({ message: 'Database error', error: err2 });
           db.query(
-            'UPDATE users SET plan = ? WHERE id = ?',
-            [reqRow.requested_plan, reqRow.user_id],
+            'UPDATE users SET plan = ? WHERE email = ?',
+            [reqRow.requested_plan, reqRow.user_email],
             (err3) => {
               if (err3) return res.status(500).json({ message: 'Database error', error: err3 });
               // Notify user
-              db.query(
-                'SELECT email FROM users WHERE id = ?',
-                [reqRow.user_id],
-                (err4, userRows) => {
-                  if (!err4 && userRows.length) sendEmail(userRows[0].email, 'upgradeApproved', reqRow.requested_plan);
-                }
-              );
+              sendEmail(reqRow.user_email, 'upgradeApproved', reqRow.requested_plan);
               res.json({ message: 'Upgrade approved and user plan updated.' });
             }
           );
@@ -699,18 +729,12 @@ router.post('/admin/upgrade-requests/:id/reject', authenticateToken, requireAdmi
       const reqRow = results[0];
       if (reqRow.status !== 'pending') return res.status(400).json({ message: 'Request already processed' });
       db.query(
-        'UPDATE upgrade_requests SET status = "rejected", updatedAt = NOW() WHERE id = ?',
+        'UPDATE upgrade_requests SET status = "rejected", updated_at = NOW() WHERE id = ?',
         [id],
         (err2) => {
           if (err2) return res.status(500).json({ message: 'Database error', error: err2 });
           // Notify user
-          db.query(
-            'SELECT email FROM users WHERE id = ?',
-            [reqRow.user_id],
-            (err4, userRows) => {
-              if (!err4 && userRows.length) sendEmail(userRows[0].email, 'upgradeRejected', reqRow.requested_plan);
-            }
-          );
+          sendEmail(reqRow.user_email, 'upgradeRejected', reqRow.requested_plan);
           res.json({ message: 'Upgrade request rejected.' });
         }
       );
@@ -778,17 +802,8 @@ router.delete('/admin/delete-account', async (req, res) => {
     console.log('Sending account deletion email to', userEmail);
     const emailSent = await sendEmail(userEmail, 'accountDeletion');
     console.log('Email sent result (account deletion):', emailSent);
-    // Delete user's drafts
-    db.query(
-      'DELETE FROM sessions WHERE user_email = ?',
-      [userEmail],
-      (err) => {
-        if (err) {
-          console.error('Error deleting drafts:', err);
-          return res.status(500).json({ message: 'Failed to delete drafts' });
-        }
-      }
-    );
+    // Delete user's drafts (sessions table doesn't exist, so skip this)
+    console.log('Skipping sessions deletion - sessions table does not exist');
     
     // Delete user account
     db.query(
@@ -832,30 +847,13 @@ router.get('/plan-limit', (req, res) => {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      const limit = PLAN_LIMITS[results[0].plan] || PLAN_LIMITS.basic;
+      const limit = config.plans[results[0].plan]?.draftLimit || config.plans.basic.draftLimit;
       res.json({ limit });
     }
   );
 });
 
-// Test email configuration
-router.post('/test-email', async (req, res) => {
-  const { email } = req.body;
-  
-  try {
-    // Send test email
-    const result = await sendEmail(email, 'planUpgrade', 'Test Plan');
-    
-    if (result) {
-      res.json({ message: 'Test email sent successfully!' });
-    } else {
-      res.status(500).json({ message: 'Failed to send test email' });
-    }
-  } catch (error) {
-    console.error('Error sending test email:', error);
-    res.status(500).json({ message: 'Error sending test email', error: error.message });
-  }
-});
+
 
 // Admin: Send custom email notification to user
 router.post('/admin/send-email', async (req, res) => {
@@ -897,143 +895,16 @@ router.get('/admin/user-emails', (req, res) => {
   );
 });
 
-// Simple database connection test
-router.get('/admin/test-db', authenticateToken, requireAdmin, (req, res) => {
-  console.log('Testing database connection...');
-  
-  db.query(
-    'SELECT 1 as test',
-    (err, results) => {
-      if (err) {
-        console.error('Database connection error:', err);
-        return res.status(500).json({ 
-          message: 'Database connection failed', 
-          error: err.message 
-        });
-      }
-      
-      console.log('Database connection successful');
-      res.json({ 
-        message: 'Database connection successful',
-        test: results[0].test
-      });
-    }
-  );
-});
 
-// Simple test endpoint to check upgrade_requests table
-router.get('/admin/test-upgrade-simple', authenticateToken, requireAdmin, (req, res) => {
-  console.log('Testing upgrade_requests table...');
-  
-  db.query(
-    'SELECT COUNT(*) as count FROM upgrade_requests',
-    (err, results) => {
-      if (err) {
-        console.error('Error checking upgrade_requests table:', err);
-        return res.status(500).json({ 
-          message: 'Database error', 
-          error: err.message,
-          tableExists: false
-        });
-      }
-      
-      console.log('upgrade_requests count:', results[0].count);
-      res.json({ 
-        count: results[0].count,
-        tableExists: true,
-        message: 'Table check completed'
-      });
-    }
-  );
-});
 
-// Test endpoint to check raw upgrade_requests data
-router.get('/admin/test-upgrade-raw', authenticateToken, requireAdmin, (req, res) => {
-  console.log('Testing raw upgrade_requests data...');
-  
-  // Get raw upgrade_requests data
-  db.query(
-    'SELECT * FROM upgrade_requests LIMIT 5',
-    (err, upgradeResults) => {
-      if (err) {
-        console.error('Error fetching raw upgrade_requests:', err);
-        return res.status(500).json({ message: 'Database error', error: err.message });
-      }
-      
-      // Get users data
-      db.query(
-        'SELECT id, email FROM users LIMIT 5',
-        (err2, userResults) => {
-          if (err2) {
-            console.error('Error fetching users:', err2);
-            return res.status(500).json({ message: 'Database error', error: err2.message });
-          }
-          
-          console.log('Raw upgrade_requests data:', upgradeResults);
-          console.log('Users data:', userResults);
-          
-          res.json({ 
-            upgradeRequests: upgradeResults,
-            users: userResults,
-            message: 'Raw data retrieved'
-          });
-        }
-      );
-    }
-  );
-});
 
-// Test endpoint to create upgrade_requests table if it doesn't exist
-router.get('/admin/create-upgrade-table', authenticateToken, requireAdmin, (req, res) => {
-  console.log('Creating upgrade_requests table if it doesn\'t exist...');
-  
-  const createTableSQL = `
-    CREATE TABLE IF NOT EXISTS upgrade_requests (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NOT NULL,
-      requested_plan VARCHAR(20) NOT NULL,
-      status ENUM('pending', 'approved', 'rejected', 'cancelled') DEFAULT 'pending',
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )
-  `;
-  
-  db.query(createTableSQL, (err) => {
-    if (err) {
-      console.error('Error creating upgrade_requests table:', err);
-      return res.status(500).json({ message: 'Database error', error: err.message });
-    }
-    
-    console.log('upgrade_requests table created/verified successfully');
-    res.json({ message: 'upgrade_requests table created/verified successfully' });
-  });
-});
 
-// Test endpoint to check drafts table structure
-router.get('/test-drafts-table', authenticateToken, (req, res) => {
-  console.log('Testing drafts table structure...');
-  
-  db.query(
-    'DESCRIBE drafts',
-    (err, results) => {
-      if (err) {
-        console.error('Error describing drafts table:', err);
-        return res.status(500).json({ 
-          message: 'Database error', 
-          error: err.message,
-          tableExists: false
-        });
-      }
-      
-      console.log('Drafts table structure:', results);
-      res.json({ 
-        tableExists: true,
-        structure: results,
-        message: 'Table structure retrieved'
-      });
-    }
-  );
-});
+
+
+
+
+
+
+
 
 module.exports = router; 

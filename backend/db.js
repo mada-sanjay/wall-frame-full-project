@@ -1,25 +1,23 @@
 const mysql = require('mysql2');
-require('dotenv').config();
+const config = require('./config/config');
 
 // Log the database configuration (without password for security)
 console.log('Database Configuration:');
-console.log('Host:', process.env.DB_HOST || 'localhost');
-console.log('User:', process.env.DB_USER || 'root');
-console.log('Database:', process.env.DB_NAME || 'wallframe');
-console.log('Port:', process.env.DB_PORT || 3306);
-console.log('Password:', process.env.DB_PASS ? '[SET]' : '[NOT SET]');
+console.log('Host:', config.database.host);
+console.log('User:', config.database.user);
+console.log('Database:', config.database.database);
+console.log('Port:', config.database.port);
+console.log('Password:', config.database.password ? '[SET]' : '[NOT SET]');
 
 // Create connection with more detailed configuration
 const db = mysql.createConnection({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || '',
-  database: process.env.DB_NAME || 'wallframe',
-  port: process.env.DB_PORT || 3306,
+  host: config.database.host,
+  user: config.database.user,
+  password: config.database.password,
+  database: config.database.database,
+  port: config.database.port,
   // Additional connection options
   connectTimeout: 60000,
-  acquireTimeout: 60000,
-  timeout: 60000,
   charset: 'utf8mb4'
 });
 
