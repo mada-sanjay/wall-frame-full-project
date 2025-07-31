@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getApiUrl } from "./config/config";
 
 function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -22,7 +23,7 @@ function RegisterPage() {
       return;
     }
     try {
-      const res = await fetch("http://localhost:5000/api/register", {
+      const res = await fetch(getApiUrl("/register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -35,7 +36,7 @@ function RegisterPage() {
         setError(data.message || "Registration failed");
       }
     } catch (err) {
-      setError("Network error - Make sure backend is running on port 5000");
+      setError("Network error - Make sure backend is running");
     }
   };
 

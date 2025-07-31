@@ -2,15 +2,14 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key_change_in_production';
 const { sendEmail } = require('../utils/emailService');
-require('dotenv').config();
+const config = require('../config/config');
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'No token provided' });
-  jwt.verify(token, JWT_SECRET, (err, user) => {
+  jwt.verify(token, config.jwt.secret, (err, user) => {
     if (err) return res.status(403).json({ message: 'Invalid token' });
     req.user = user;
     next();
@@ -62,7 +61,7 @@ router.delete('/delete-draft/:id', authenticateToken, requireAdmin, async (req, 
 
 // Get all users
 router.get('/users', authenticateToken, requireAdmin, (req, res) => {
-  db.query('SELECT * FROM users ORDER BY createdAt DESC', (err, results) => {
+  db.query('SELECT * FROM users ORDER BY created_at DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     console.log('Users fetched:', results.length);
     res.json({ users: results });
@@ -71,7 +70,7 @@ router.get('/users', authenticateToken, requireAdmin, (req, res) => {
 
 // Get all drafts
 router.get('/drafts', authenticateToken, requireAdmin, (req, res) => {
-  db.query('SELECT d.*, u.email as userEmail FROM drafts d JOIN users u ON d.user_id = u.id ORDER BY d.createdAt DESC', (err, results) => {
+  db.query('SELECT d.*, u.email as userEmail FROM drafts d JOIN users u ON d.user_id = u.id ORDER BY d.created_at DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     console.log('Drafts fetched:', results.length);
     res.json({ drafts: results });

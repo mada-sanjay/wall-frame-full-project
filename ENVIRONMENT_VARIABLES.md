@@ -1,83 +1,112 @@
-# 🔧 Environment Variables Reference
+# Environment Variables Configuration
 
-## Required Environment Variables
+This document describes all environment variables used in the WallFrame application.
 
-### Database Configuration
-```
-DB_HOST=your_mysql_host
-DB_USER=your_mysql_username
-DB_PASS=your_mysql_password
-DB_NAME=wallframe
-DB_PORT=3306
-```
+## Backend Environment Variables (.env)
 
 ### Server Configuration
-```
+```env
 PORT=5000
-NODE_ENV=production
+NODE_ENV=development
+```
+
+### Database Configuration
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=your_password
+DB_NAME=wallframe
+DB_PORT=3306
 ```
 
 ### JWT Configuration
-```
+```env
 JWT_SECRET=your_very_long_random_secret_key_here_change_in_production
+JWT_EXPIRES_IN=2h
 ```
 
-### Email Configuration (for notifications)
-```
+### Email Configuration
+```env
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password_here
+EMAIL_PASS=your_app_password
+EMAIL_SECURE=false
 ```
 
-### Frontend URL (for CORS)
-```
-FRONTEND_URL=https://your-frontend-domain.onrender.com
-ALLOWED_ORIGINS=https://your-frontend-domain.onrender.com,http://localhost:3000
-```
-
-### Plan Limits
-```
-BASIC_PLAN_DRAFTS=3
-PRO_PLAN_DRAFTS=6
-PRO_MAX_PLAN_DRAFTS=999
+### CORS Configuration
+```env
+ALLOWED_ORIGINS=http://localhost:3000,https://your-frontend-domain.onrender.com
 ```
 
-## 🔒 Security Notes
+### File Upload Configuration
+```env
+MAX_FILE_SIZE=5242880
+UPLOAD_PATH=public/uploads
+```
+
+### API Configuration
+```env
+API_BASE_URL=http://localhost:5000
+```
+
+## Frontend Environment Variables (.env)
+
+### API Configuration
+```env
+REACT_APP_API_BASE_URL=http://localhost:5000
+```
+
+### Feature Flags
+```env
+REACT_APP_ENABLE_EMAIL_NOTIFICATIONS=true
+REACT_APP_ENABLE_FILE_UPLOAD=true
+REACT_APP_ENABLE_ADMIN_PANEL=true
+```
+
+### Upload Configuration
+```env
+REACT_APP_MAX_FILE_SIZE=5242880
+```
+
+### App Configuration
+```env
+REACT_APP_APP_NAME=WallFrame
+REACT_APP_APP_VERSION=1.0.0
+REACT_APP_ENVIRONMENT=development
+```
+
+## Production Configuration
+
+For production deployment, update these values:
+
+### Backend (.env)
+```env
+NODE_ENV=production
+JWT_SECRET=your_production_secret_key_here
+ALLOWED_ORIGINS=https://your-frontend-domain.com
+API_BASE_URL=https://your-backend-domain.com
+```
+
+### Frontend (.env)
+```env
+REACT_APP_API_BASE_URL=https://your-backend-domain.com
+REACT_APP_ENVIRONMENT=production
+```
+
+## Security Notes
 
 1. **JWT_SECRET**: Use a strong, random string (at least 32 characters)
-2. **DB_PASS**: Use a strong database password
-3. **EMAIL_PASS**: Use an app password, not your regular Gmail password
-4. **ALLOWED_ORIGINS**: Only include trusted domains
+2. **Database Password**: Use a strong password for production
+3. **Email Credentials**: Use app-specific passwords for Gmail
+4. **CORS Origins**: Only include trusted domains in production
+5. **File Upload Limits**: Set appropriate limits for your use case
 
-## 🚀 Render Deployment
+## Configuration Files
 
-When deploying to Render, set these environment variables in the Render dashboard:
+The application uses centralized configuration files:
 
-1. Go to your service in Render
-2. Click "Environment" tab
-3. Add each variable with its value
-4. Click "Save Changes"
-5. Restart your service
+- `backend/config/config.js` - Backend configuration
+- `frontend/src/config/config.js` - Frontend configuration
 
-## 📝 Example Values
-
-```
-NODE_ENV=production
-PORT=10000
-DB_HOST=your-render-mysql-host.render.com
-DB_USER=wallframe_user
-DB_PASS=your_strong_password_123
-DB_NAME=wallframe
-DB_PORT=3306
-JWT_SECRET=my_super_secret_jwt_key_that_is_very_long_and_random_12345
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-app@gmail.com
-EMAIL_PASS=your_gmail_app_password
-FRONTEND_URL=https://your-frontend.onrender.com
-ALLOWED_ORIGINS=https://your-frontend.onrender.com,http://localhost:3000
-BASIC_PLAN_DRAFTS=3
-PRO_PLAN_DRAFTS=6
-PRO_MAX_PLAN_DRAFTS=999
-``` 
+These files automatically load environment variables and provide fallback defaults. 

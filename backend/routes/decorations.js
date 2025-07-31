@@ -5,13 +5,12 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key_change_in_production';
-require('dotenv').config();
+const config = require('../config/config');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../public/uploads');
+    const uploadDir = path.join(__dirname, '..', config.upload.uploadPath);
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -25,9 +24,9 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: config.upload.maxFileSize },
   fileFilter: function (req, file, cb) {
-    if (file.mimetype.startsWith('image/')) {
+    if (config.upload.allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error('Only image files are allowed'));
@@ -39,7 +38,7 @@ function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'No token provided' });
-  jwt.verify(token, JWT_SECRET, (err, user) => {
+  jwt.verify(token, config.jwt.secret, (err, user) => {
     if (err) return res.status(403).json({ message: 'Invalid token' });
     req.user = user;
     next();
@@ -57,33 +56,47 @@ function requireAdmin(req, res, next) {
 
 // List all decorations
 router.get('/decorations', authenticateToken, requireAdmin, (req, res) => {
-  db.query('SELECT * FROM decorations WHERE status = "active" ORDER BY id DESC', (err, results) => {
+  db.query('SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
+    
+    // Return decorations as-is since URLs are already complete
     res.json({ decorations: results });
   });
 });
 
 // List pending decorations
 router.get('/decorations/pending', authenticateToken, requireAdmin, (req, res) => {
-  db.query('SELECT * FROM decorations WHERE status = "inactive" ORDER BY id DESC', (err, results) => {
+  db.query('SELECT * FROM decorations WHERE status = "Pending" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
+    
+    // Return decorations as-is since URLs are already complete
     res.json({ decorations: results });
   });
 });
 
 // Add new decoration
 router.post('/decorations', authenticateToken, requireAdmin, (req, res) => {
-  const { name, category, image, subscription_plan = 'basic' } = req.body;
+  const { name, category, image } = req.body;
   if (!name || !category || !image) {
     return res.status(400).json({ message: 'Missing fields' });
   }
-  db.query('INSERT INTO decorations (name, category, image_data, status, subscription_plan) VALUES (?, ?, ?, "active", ?)',
-    [name, category, image, subscription_plan],
+  db.query('INSERT INTO decorations (name, category, image, status) VALUES (?, ?, ?, "Active")',
+    [name, category, image],
     (err, results) => {
-      if (err) return res.status(500).json({ message: 'Database error', error: err });
+      if (err) {
+        console.error('Error adding decoration:', err);
+        return res.status(500).json({ message: 'Database error', error: err.message });
+      }
       db.query('SELECT * FROM decorations WHERE id = ?', [results.insertId], (err2, rows) => {
         if (err2 || !rows.length) return res.json({ message: 'Decoration added' });
-        res.json({ decoration: rows[0] });
+        
+        // Add full server URL to image path
+        const decorationWithFullUrl = {
+          ...rows[0],
+          image: rows[0].image ? `${config.api.baseUrl}${rows[0].image}` : null
+        };
+        
+        res.json({ decoration: decorationWithFullUrl });
       });
     }
   );
@@ -99,11 +112,18 @@ router.delete('/decorations/:id', authenticateToken, requireAdmin, (req, res) =>
 
 // Approve pending decoration
 router.post('/decorations/:id/approve', authenticateToken, requireAdmin, (req, res) => {
-  db.query('UPDATE decorations SET status = "active" WHERE id = ?', [req.params.id], (err, results) => {
+  db.query('UPDATE decorations SET status = "Active" WHERE id = ?', [req.params.id], (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     db.query('SELECT * FROM decorations WHERE id = ?', [req.params.id], (err2, rows) => {
       if (err2 || !rows.length) return res.json({ message: 'Decoration approved' });
-      res.json({ decoration: rows[0] });
+      
+              // Add full server URL to image path
+        const decorationWithFullUrl = {
+          ...rows[0],
+          image: rows[0].image ? `${config.api.baseUrl}${rows[0].image}` : null
+        };
+      
+      res.json({ decoration: decorationWithFullUrl });
     });
   });
 });
@@ -140,29 +160,23 @@ router.get('/decorations/public/:plan', (req, res) => {
     return res.status(400).json({ message: 'Invalid subscription plan' });
   }
   
-  let query = 'SELECT * FROM decorations WHERE status = "active"';
-  let params = [];
+  // For now, return all active decorations since we don't have subscription_plan column
+  const query = 'SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC';
   
-  if (plan === 'basic') {
-    query += ' AND subscription_plan = "basic"';
-  } else if (plan === 'pro') {
-    query += ' AND (subscription_plan = "basic" OR subscription_plan = "pro")';
-  } else if (plan === 'pro_max') {
-    query += ' AND (subscription_plan = "basic" OR subscription_plan = "pro" OR subscription_plan = "pro_max")';
-  }
-  
-  query += ' ORDER BY id DESC';
-  
-  db.query(query, params, (err, results) => {
+  db.query(query, (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
+    
+    // Return decorations as-is since URLs are already complete
     res.json({ decorations: results });
   });
 });
 
 // Public: List all active decorations for users
 router.get('/decorations/public', (req, res) => {
-  db.query('SELECT * FROM decorations WHERE status = "active" ORDER BY id DESC', (err, results) => {
+  db.query('SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
+    
+    // Return decorations as-is since URLs are already complete
     res.json({ decorations: results });
   });
 });

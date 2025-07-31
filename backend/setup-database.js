@@ -9,7 +9,8 @@ const connection = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASS || '',
-  port: process.env.DB_PORT || 3306
+  port: process.env.DB_PORT || 3306,
+  connectTimeout: 60000
 });
 
 connection.connect((err) => {
@@ -54,7 +55,6 @@ function createTables() {
   const tables = [
     `CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      username VARCHAR(255) UNIQUE NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
       password VARCHAR(255) NOT NULL,
       plan ENUM('basic', 'pro', 'pro_max') DEFAULT 'basic',
@@ -93,6 +93,17 @@ function createTables() {
       status ENUM('Active', 'Pending', 'Inactive') DEFAULT 'Active',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`,
+    
+    `CREATE TABLE IF NOT EXISTS upgrade_requests (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      user_email VARCHAR(255) NOT NULL,
+      requested_plan ENUM('basic', 'pro', 'pro_max') NOT NULL,
+      status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`
   ];
 
