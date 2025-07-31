@@ -2,8 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const config = require('./config/config');
-const { autoSetupDatabase } = require('./utils/autoSetupDb');
-
 const app = express();
 
 // Production-ready CORS configuration
@@ -34,6 +32,19 @@ app.use('/uploads', express.static(path.join(__dirname, config.upload.uploadPath
 // Health check endpoint for Render
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Debug endpoint to check environment variables
+app.get('/debug-env', (req, res) => {
+  res.status(200).json({
+    dbHost: process.env.DB_HOST ? 'SET' : 'NOT SET',
+    dbUser: process.env.DB_USER ? 'SET' : 'NOT SET',
+    dbName: process.env.DB_NAME ? 'SET' : 'NOT SET',
+    dbPort: process.env.DB_PORT ? 'SET' : 'NOT SET',
+    dbPass: process.env.DB_PASS ? 'SET' : 'NOT SET',
+    nodeEnv: process.env.NODE_ENV || 'NOT SET',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Test database connection endpoint
@@ -71,11 +82,8 @@ app.use(`${config.api.prefix}/admin`, adminRoutes);
 // API-only backend - frontend is served separately
 // No need to serve frontend files since we have separate frontend service
 
-app.listen(config.port, async () => {
+app.listen(config.port, () => {
   console.log(`🚀 Backend running on port ${config.port}`);
   console.log(`🌍 Environment: ${config.nodeEnv}`);
   console.log(`🔗 CORS Origins: ${config.cors.allowedOrigins.join(', ')}`);
-  
-  // Auto-setup database on startup
-  await autoSetupDatabase();
 }); 
