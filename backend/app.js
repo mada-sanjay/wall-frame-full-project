@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const config = require('./config/config');
+const { autoSetupDatabase } = require('./utils/autoSetupDb');
+
 const app = express();
 
 // Production-ready CORS configuration
@@ -82,8 +84,11 @@ app.use(`${config.api.prefix}/admin`, adminRoutes);
 // API-only backend - frontend is served separately
 // No need to serve frontend files since we have separate frontend service
 
-app.listen(config.port, () => {
+app.listen(config.port, async () => {
   console.log(`🚀 Backend running on port ${config.port}`);
   console.log(`🌍 Environment: ${config.nodeEnv}`);
   console.log(`🔗 CORS Origins: ${config.cors.allowedOrigins.join(', ')}`);
+  
+  // Auto-setup database on startup
+  await autoSetupDatabase();
 }); 

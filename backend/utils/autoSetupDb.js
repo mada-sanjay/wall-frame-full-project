@@ -10,15 +10,10 @@ const createConnection = () => {
     port: process.env.DB_PORT,
     // AWS RDS specific settings
     ssl: {
-      rejectUnauthorized: false,
-      ca: undefined,
-      cert: undefined,
-      key: undefined
+      rejectUnauthorized: false
     },
     // Connection timeout settings
     connectTimeout: 60000,
-    acquireTimeout: 60000,
-    timeout: 60000,
     charset: 'utf8mb4'
   });
 };

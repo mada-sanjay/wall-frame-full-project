@@ -18,22 +18,13 @@ const db = mysql.createConnection({
   port: config.database.port,
   // AWS RDS specific settings
   ssl: {
-    rejectUnauthorized: false,
-    ca: undefined,
-    cert: undefined,
-    key: undefined
+    rejectUnauthorized: false
   },
   // Connection timeout settings
   connectTimeout: 60000,
-  acquireTimeout: 60000,
-  timeout: 60000,
   // Additional settings for stability
   charset: 'utf8mb4',
-  multipleStatements: false,
-  // Reconnection settings
-  reconnect: true,
-  maxReconnects: 10,
-  reconnectDelay: 1000
+  multipleStatements: false
 });
 
 db.connect((err) => {
