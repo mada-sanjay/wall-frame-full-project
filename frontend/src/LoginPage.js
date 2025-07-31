@@ -12,7 +12,7 @@ function LoginPage({ onLogin }) {
     e.preventDefault();
     setError("");
     try {
-      const res = await fetch("/api/login", {
+      const res = await fetch("http://localhost:5000/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -45,7 +45,7 @@ function LoginPage({ onLogin }) {
         setError(data.message || "Login failed");
       }
     } catch (err) {
-      setError("Network error");
+      setError("Network error - Make sure backend is running on port 5000");
     }
   };
 

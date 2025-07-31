@@ -103,10 +103,24 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const [activeTab, setActiveTab] = useState('design');
 
   useEffect(() => {
-    fetch('/api/admin/decorations/public')
+    // Fetch user plan first, then fetch decorations based on plan
+    const token = localStorage.getItem("token");
+    fetch("http://localhost:5000/api/me", { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => {
-        const dbDecorations = (data.decorations || []).map(d => ({ name: d.name, url: d.image }));
+        const userPlan = data.user?.plan || "basic";
+        setPlan(userPlan);
+        let limit = 3;
+        if (userPlan === "pro") limit = 6;
+        if (userPlan === "pro_max") limit = Infinity;
+        setDraftLimit(limit);
+        
+        // Fetch decorations based on user's subscription plan
+        return fetch(`http://localhost:5000/api/admin/decorations/public/${userPlan}`);
+      })
+      .then(res => res.json())
+      .then(data => {
+        const dbDecorations = (data.decorations || []).map(d => ({ name: d.name, url: d.image_data }));
         const hardcoded = [
     { name: 'frame', url: '/frame_1.png' },
     { name: 'chair', url: '/chair.png' },
@@ -117,19 +131,27 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           { name: 'flower', url: '/flower-removebg-preview.png' },
         ];
         setDecorations([...dbDecorations, ...hardcoded]);
+      })
+      .catch(error => {
+        console.error('Error fetching decorations:', error);
+        // Fallback to basic decorations if plan-based fetch fails
+        fetch('http://localhost:5000/api/admin/decorations/public')
+          .then(res => res.json())
+          .then(data => {
+            const dbDecorations = (data.decorations || []).map(d => ({ name: d.name, url: d.image_data }));
+            const hardcoded = [
+      { name: 'frame', url: '/frame_1.png' },
+      { name: 'chair', url: '/chair.png' },
+      { name: 'garland', url: '/garland-removebg-preview.png' },
+      { name: 'garland', url: '/one.png' },
+      { name: 'Image', url: '/two.png' },
+      { name: 'garland', url: '/three.png' }, 
+            { name: 'flower', url: '/flower-removebg-preview.png' },
+          ];
+          setDecorations([...dbDecorations, ...hardcoded]);
+        });
       });
-    // Fetch plan and draft count from backend
-    const token = localStorage.getItem("token");
-    fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => {
-        const userPlan = data.user?.plan || "basic";
-        setPlan(userPlan);
-        let limit = 3;
-        if (userPlan === "pro") limit = 6;
-        if (userPlan === "pro_max") limit = Infinity;
-        setDraftLimit(limit);
-      });
+    // Fetch plan and draft count from backend (already handled above)
     const user_email = localStorage.getItem("userEmail");
     if (user_email) {
       fetch(`/api/sessions?user_email=${encodeURIComponent(user_email)}`, {
@@ -221,14 +243,14 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       const token = localStorage.getItem('token');
       if (currentDraftId) {
         // Update existing draft
-        res = await fetch(`/api/update-session/${currentDraftId}`, {
+        res = await fetch(`http://localhost:5000/api/update-session/${currentDraftId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify({ user_email, session_data })
         });
       } else {
         // Create new draft
-        res = await fetch("/api/save-session", {
+        res = await fetch("http://localhost:5000/api/save-session", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify({ user_email, session_data })
@@ -264,7 +286,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
     const user_email = localStorage.getItem("userEmail");
     if (!user_email) return;
     try {
-      const res = await fetch(`/api/sessions?user_email=${encodeURIComponent(user_email)}`, {
+      const res = await fetch(`http://localhost:5000/api/sessions?user_email=${encodeURIComponent(user_email)}`, {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
@@ -311,7 +333,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
     }
     
     try {
-      const res = await fetch(`/api/session/${sessionId}?user_email=${encodeURIComponent(user_email)}`, {
+      const res = await fetch(`http://localhost:5000/api/session/${sessionId}?user_email=${encodeURIComponent(user_email)}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
       });

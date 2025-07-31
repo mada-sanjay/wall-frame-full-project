@@ -22,7 +22,7 @@ function RegisterPage() {
       return;
     }
     try {
-      const res = await fetch("/api/register", {
+      const res = await fetch("http://localhost:5000/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -35,7 +35,7 @@ function RegisterPage() {
         setError(data.message || "Registration failed");
       }
     } catch (err) {
-      setError("Network error");
+      setError("Network error - Make sure backend is running on port 5000");
     }
   };
 

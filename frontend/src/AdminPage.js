@@ -30,7 +30,9 @@ function AdminPage() {
   const [decorations, setDecorations] = useState([]);
   const [pendingDecorations, setPendingDecorations] = useState([]);
   const [showAddDecoration, setShowAddDecoration] = useState(false);
-  const [newDecoration, setNewDecoration] = useState({ name: '', category: '', image: '', status: 'Active' });
+  const [newDecoration, setNewDecoration] = useState({ name: '', category: '', image: '', status: 'Active', subscription_plan: 'basic' });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [emailForm, setEmailForm] = useState({ to: '', subject: '', message: '' });
   const [emailStatus, setEmailStatus] = useState('');
   const [userEmails, setUserEmails] = useState([]);
@@ -66,15 +68,15 @@ function AdminPage() {
     }
   }, [navigate]);
 
-  // Fetch all admin data
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    setLoading(true);
+  // Fetch admin data
+  const fetchAdminData = () => {
+    const token = localStorage.getItem('token');
     Promise.all([
-      fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch("/api/admin/drafts", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch("/api/admin/stats", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch('http://localhost:5000/api/admin/users', { headers: { Authorization: `Bearer ${token}` } }),
+      fetch('http://localhost:5000/api/admin/drafts', { headers: { Authorization: `Bearer ${token}` } }),
+      fetch('http://localhost:5000/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } })
     ])
+      .then(responses => Promise.all(responses.map(res => res.json())))
       .then(([userRes, draftRes, statsRes]) => {
         setUsers(userRes.users || []);
         setDrafts(draftRes.drafts || []);
@@ -85,16 +87,20 @@ function AdminPage() {
         setError("Failed to load admin data");
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchAdminData();
   }, []);
 
   // Fetch decorations and pending decorations from backend
   useEffect(() => {
     if (section !== 'decorations') return;
     const token = localStorage.getItem('token');
-    fetch('/api/admin/decorations', { headers: { Authorization: `Bearer ${token}` } })
+    fetch('http://localhost:5000/api/admin/decorations', { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => setDecorations(data.decorations || []));
-    fetch('/api/admin/decorations/pending', { headers: { Authorization: `Bearer ${token}` } })
+    fetch('http://localhost:5000/api/admin/decorations/pending', { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => setPendingDecorations(data.decorations || []));
   }, [section]);
@@ -102,7 +108,7 @@ function AdminPage() {
   // Fetch all user emails for the email notification dropdown
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch('/api/admin/user-emails', { headers: { Authorization: `Bearer ${token}` } })
+    fetch('http://localhost:5000/api/admin/user-emails', { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => setUserEmails(data.emails || []));
   }, []);
@@ -111,15 +117,9 @@ function AdminPage() {
   useEffect(() => {
     if (section !== 'upgrade_requests') return;
     const token = localStorage.getItem('token');
-    console.log('Fetching upgrade requests...');
-    fetch('/api/admin/upgrade-requests', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => {
-        console.log('Upgrade requests response status:', res.status);
-        return res.json();
-      })
+    fetch('http://localhost:5000/api/admin/upgrade-requests', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
       .then(data => {
-        console.log('Upgrade requests data:', data);
-        console.log('First request sample:', data.requests?.[0]);
         setUpgradeRequests(data.requests || []);
       })
       .catch(error => {
@@ -127,28 +127,82 @@ function AdminPage() {
       });
   }, [section]);
 
-  // Add new decoration (API)
-  const handleAddDecoration = (e) => {
-    e.preventDefault();
+  // Handle file selection
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      // Create a preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setNewDecoration(prev => ({ ...prev, image: e.target.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Upload file to server
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    
     const token = localStorage.getItem('token');
-    fetch('/api/admin/decorations', {
+    const response = await fetch('http://localhost:5000/api/admin/upload-image', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(newDecoration)
-    })
-      .then(res => res.json())
-      .then(data => {
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return `http://localhost:5000${data.imageUrl}`;
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Upload failed');
+    }
+  };
+
+  // Add new decoration (API)
+  const handleAddDecoration = async (e) => {
+    e.preventDefault();
+    setUploading(true);
+    
+    try {
+      let imageUrl = newDecoration.image;
+      
+      // If a file is selected, upload it first
+      if (selectedFile) {
+        imageUrl = await uploadFile(selectedFile);
+      }
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/admin/decorations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...newDecoration, image: imageUrl })
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
         setDecorations(prev => [data.decoration, ...prev]);
         setShowAddDecoration(false);
-        setNewDecoration({ name: '', category: '', image: '', status: 'Active' });
-      });
+        setNewDecoration({ name: '', category: '', image: '', status: 'Active', subscription_plan: 'basic' });
+        setSelectedFile(null);
+      } else {
+        alert('Failed to add decoration: ' + data.message);
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Delete decoration (API)
   const handleDeleteDecoration = (id) => {
     if (!window.confirm('Delete this decoration?')) return;
     const token = localStorage.getItem('token');
-    fetch(`/api/admin/decorations/${id}`, {
+    fetch(`http://localhost:5000/api/admin/decorations/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -158,7 +212,7 @@ function AdminPage() {
   // Approve pending decoration (API)
   const handleApproveDecoration = (dec) => {
     const token = localStorage.getItem('token');
-    fetch(`/api/admin/decorations/${dec.id}/approve`, {
+    fetch(`http://localhost:5000/api/admin/decorations/${dec.id}/approve`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -172,7 +226,7 @@ function AdminPage() {
   // Reject pending decoration (API)
   const handleRejectDecoration = (id) => {
     const token = localStorage.getItem('token');
-    fetch(`/api/admin/decorations/${id}/reject`, {
+    fetch(`http://localhost:5000/api/admin/decorations/${id}/reject`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -182,7 +236,7 @@ function AdminPage() {
   // Promote/demote user
   const handlePromote = (id, isAdmin) => {
     const token = localStorage.getItem("token");
-    fetch(`/api/admin/users/${id}/promote`, {
+    fetch(`http://localhost:5000/api/admin/users/${id}/promote`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ isAdmin: !isAdmin })
@@ -196,7 +250,7 @@ function AdminPage() {
   // Plan upgrade
   const handleChangePlan = (userEmail, newPlan) => {
     const token = localStorage.getItem('token');
-    fetch('/api/admin/update-plan', {
+    fetch('http://localhost:5000/api/admin/update-plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ userEmail, newPlan })
@@ -211,7 +265,7 @@ function AdminPage() {
   const handleDeleteUser = (userEmail) => {
     if (!window.confirm('Delete this user?')) return;
     const token = localStorage.getItem('token');
-    fetch('/api/admin/delete-account', {
+    fetch('http://localhost:5000/api/admin/delete-account', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ userEmail })
@@ -226,13 +280,23 @@ function AdminPage() {
   const handleDeleteDraft = (draftId, userEmail) => {
     if (!window.confirm('Delete this draft?')) return;
     const token = localStorage.getItem('token');
-    fetch(`/api/admin/delete-draft/${draftId}?userEmail=${userEmail}`, {
+    
+    fetch(`http://localhost:5000/api/admin/delete-draft/${draftId}?userEmail=${userEmail}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
-      .then(() => {
-        setDrafts(drafts => drafts.filter(d => d.id !== draftId));
+      .then(data => {
+        if (data.message === 'Draft deleted successfully') {
+          // Refresh the drafts data from server to ensure consistency
+          fetchAdminData();
+        } else {
+          alert('Failed to delete draft: ' + (data.message || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error deleting draft:', error);
+        alert('Error deleting draft: ' + error.message);
       });
   };
 
@@ -246,7 +310,7 @@ function AdminPage() {
     }
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/admin/send-email', {
+      const res = await fetch('http://localhost:5000/api/admin/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(emailForm)
@@ -266,7 +330,7 @@ function AdminPage() {
   // Approve/reject handlers
   const handleApproveUpgrade = (id) => {
     const token = localStorage.getItem('token');
-    fetch(`/api/admin/upgrade-requests/${id}/approve`, {
+    fetch(`http://localhost:5000/api/admin/upgrade-requests/${id}/approve`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -275,7 +339,7 @@ function AdminPage() {
   };
   const handleRejectUpgrade = (id) => {
     const token = localStorage.getItem('token');
-    fetch(`/api/admin/upgrade-requests/${id}/reject`, {
+    fetch(`http://localhost:5000/api/admin/upgrade-requests/${id}/reject`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -984,6 +1048,11 @@ function AdminPage() {
                     padding: 10, 
                     borderRadius: 8,
                     color: isDarkMode ? '#f9fafb' : '#333'
+                  }}>Draft Name</th>
+                  <th style={{ 
+                    padding: 10, 
+                    borderRadius: 8,
+                    color: isDarkMode ? '#f9fafb' : '#333'
                   }}>Created At</th>
                   <th style={{ 
                     padding: 10, 
@@ -1001,13 +1070,17 @@ function AdminPage() {
                     <td style={{ 
                       padding: 10,
                       color: isDarkMode ? '#f9fafb' : '#333'
-                    }}>{draft.user_email}</td>
+                    }}>{draft.userEmail}</td>
+                    <td style={{ 
+                      padding: 10,
+                      color: isDarkMode ? '#f9fafb' : '#333'
+                    }}>{draft.name}</td>
                     <td style={{ 
                       padding: 10,
                       color: isDarkMode ? '#d1d5db' : '#333'
                     }}>{new Date(draft.created_at).toLocaleDateString()}</td>
                     <td style={{ padding: 10, textAlign: 'center' }}>
-                      <button onClick={() => handleDeleteDraft(draft.id, draft.user_email)} style={{ 
+                      <button onClick={() => handleDeleteDraft(draft.id, draft.userEmail)} style={{ 
                         padding: '4px 10px', 
                         borderRadius: 4, 
                         border: 'none', 
@@ -1084,23 +1157,65 @@ function AdminPage() {
                         color: isDarkMode ? '#f9fafb' : '#222' 
                       }}
                     />
-                    <input
-                      type="text"
-                      placeholder="Image URL (e.g. /flower-removebg-preview.png)"
-                      value={newDecoration.image}
-                      onChange={e => setNewDecoration(d => ({ ...d, image: e.target.value }))}
-                      required
+                    <select
+                      value={newDecoration.subscription_plan}
+                      onChange={e => setNewDecoration(d => ({ ...d, subscription_plan: e.target.value }))}
                       style={{ 
-                        flex: 2, 
                         padding: 8, 
                         borderRadius: 4, 
                         border: isDarkMode ? '1px solid #4b5563' : '1px solid #555', 
                         background: isDarkMode ? '#374151' : '#e0e7ef', 
-                        color: isDarkMode ? '#f9fafb' : '#222' 
+                        color: isDarkMode ? '#f9fafb' : '#222',
+                        minWidth: '120px'
                       }}
-                    />
+                    >
+                      <option value="basic">Basic</option>
+                      <option value="pro">Pro</option>
+                      <option value="pro_max">Pro Max</option>
+                    </select>
+                    <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        style={{ 
+                          padding: 8, 
+                          borderRadius: 4, 
+                          border: isDarkMode ? '1px solid #4b5563' : '1px solid #555', 
+                          background: isDarkMode ? '#374151' : '#e0e7ef', 
+                          color: isDarkMode ? '#f9fafb' : '#222',
+                          fontSize: '12px'
+                        }}
+                      />
+                      {newDecoration.image && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <img 
+                            src={newDecoration.image} 
+                            alt="Preview" 
+                            style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover' }}
+                          />
+                          <span style={{ fontSize: '12px', color: isDarkMode ? '#9ca3af' : '#64748b' }}>
+                            {selectedFile ? selectedFile.name : 'Image selected'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <button type="submit" style={{ padding: '8px 24px', borderRadius: 4, background: '#43cea2', color: '#181a20', border: 'none', fontWeight: 600 }}>Add</button>
+                  <button 
+                    type="submit" 
+                    disabled={uploading}
+                    style={{ 
+                      padding: '8px 24px', 
+                      borderRadius: 4, 
+                      background: uploading ? '#6b7280' : '#43cea2', 
+                      color: '#181a20', 
+                      border: 'none', 
+                      fontWeight: 600,
+                      cursor: uploading ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {uploading ? 'Uploading...' : 'Add'}
+                  </button>
                   <button type="button" onClick={() => setShowAddDecoration(false)} style={{ marginLeft: 12, padding: '8px 24px', borderRadius: 4, background: '#35374a', color: '#b0b3c6', border: 'none', fontWeight: 600 }}>Cancel</button>
                 </form>
               </div>
@@ -1120,19 +1235,52 @@ function AdminPage() {
                   <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Image</th>
                   <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Name</th>
                   <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Category</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Plan</th>
                   <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Status</th>
                   <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {decorations.map(dec => (
+                {decorations.filter(dec => dec).map(dec => (
                   <tr key={dec.id} style={{ 
                     borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e0e7ef',
                     background: isDarkMode ? '#1f2937' : 'transparent'
                   }}>
-                    <td style={{ padding: 10 }}><img src={dec.image} alt={dec.name} width={40} /></td>
+                    <td style={{ padding: 10 }}>
+                      {dec.image_data ? (
+                        <img src={dec.image_data} alt={dec.name} width={40} />
+                      ) : (
+                        <div style={{ 
+                          width: 40, 
+                          height: 40, 
+                          background: isDarkMode ? '#374151' : '#e2e8f0', 
+                          borderRadius: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: isDarkMode ? '#9ca3af' : '#64748b',
+                          fontSize: '12px'
+                        }}>
+                          No Image
+                        </div>
+                      )}
+                    </td>
                     <td style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>{dec.name}</td>
                     <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{dec.category}</td>
+                    <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>
+                      <span style={{
+                        background: dec.subscription_plan === 'basic' ? '#10b981' : 
+                                   dec.subscription_plan === 'pro' ? '#3b82f6' : '#8b5cf6',
+                        color: '#ffffff',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        textTransform: 'uppercase'
+                      }}>
+                        {dec.subscription_plan || 'basic'}
+                      </span>
+                    </td>
                     <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{dec.status}</td>
                     <td style={{ padding: 10 }}>
                       <button onClick={() => handleDeleteDecoration(dec.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Delete</button>
@@ -1159,12 +1307,30 @@ function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {pendingDecorations.map(dec => (
+                {pendingDecorations.filter(dec => dec).map(dec => (
                   <tr key={dec.id} style={{ 
                     borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e0e7ef',
                     background: isDarkMode ? '#1f2937' : 'transparent'
                   }}>
-                    <td style={{ padding: 10 }}><img src={dec.image} alt={dec.name} width={40} /></td>
+                    <td style={{ padding: 10 }}>
+                      {dec.image_data ? (
+                        <img src={dec.image_data} alt={dec.name} width={40} />
+                      ) : (
+                        <div style={{ 
+                          width: 40, 
+                          height: 40, 
+                          background: isDarkMode ? '#374151' : '#e2e8f0', 
+                          borderRadius: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: isDarkMode ? '#9ca3af' : '#64748b',
+                          fontSize: '12px'
+                        }}>
+                          No Image
+                        </div>
+                      )}
+                    </td>
                     <td style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>{dec.name}</td>
                     <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{dec.category}</td>
                     <td style={{ padding: 10 }}>
