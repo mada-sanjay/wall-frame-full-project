@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const config = require('./config/config');
+const { autoSetupDatabase } = require('./utils/autoSetupDb');
 
 const app = express();
 
@@ -35,6 +36,27 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Test database connection endpoint
+app.get('/test-db', async (req, res) => {
+  try {
+    const db = require('./db');
+    db.query('SELECT 1 as test', (err, results) => {
+      if (err) {
+        console.error('Database test failed:', err);
+        res.status(500).json({ error: 'Database connection failed', details: err.message });
+      } else {
+        res.status(200).json({ 
+          status: 'Database connected', 
+          test: results[0].test,
+          timestamp: new Date().toISOString() 
+        });
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Database test failed', details: error.message });
+  }
+});
+
 // Test database connection
 const db = require('./db');
 
@@ -46,17 +68,14 @@ app.use(config.api.prefix, authRoutes);
 app.use(`${config.api.prefix}/admin`, decorationRoutes);
 app.use(`${config.api.prefix}/admin`, adminRoutes);
 
-// Serve static files from React build (for production)
-if (config.nodeEnv === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
-  });
-}
+// API-only backend - frontend is served separately
+// No need to serve frontend files since we have separate frontend service
 
-app.listen(config.port, () => {
+app.listen(config.port, async () => {
   console.log(`🚀 Backend running on port ${config.port}`);
   console.log(`🌍 Environment: ${config.nodeEnv}`);
   console.log(`🔗 CORS Origins: ${config.cors.allowedOrigins.join(', ')}`);
+  
+  // Auto-setup database on startup
+  await autoSetupDatabase();
 }); 

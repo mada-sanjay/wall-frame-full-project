@@ -33,6 +33,7 @@ db.connect((err) => {
     console.error('3. Ensure the database "wallframe" exists');
     console.error('4. Check if the user has proper permissions');
     console.error('5. Try connecting manually: mysql -u root -p');
+    // Don't exit - let the app continue and try auto-setup
   } else {
     console.log('✅ Connected to MySQL database successfully!');
   }
