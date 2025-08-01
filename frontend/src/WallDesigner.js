@@ -4,7 +4,7 @@ import html2canvas from "html2canvas";
 import "./App.css";
 import "./components/Wall.css";
 import { useNavigate } from "react-router-dom";
-import { getApiUrl, getAdminApiUrl } from "./config/config";
+import { getApiUrl, getAdminApiUrl, config } from "./config/config";
 
 // Helper to generate unique IDs
 function generateId() {
@@ -362,7 +362,26 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const handleWallImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setWallImage(URL.createObjectURL(file));
+      // Validate file size (max 5MB)
+      const maxSize = config.upload.maxFileSize || 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert(`File size must be less than ${Math.round(maxSize / (1024 * 1024))}MB`);
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = config.upload.allowedTypes || ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please upload a valid image file (JPEG, PNG, WebP, or GIF)');
+        return;
+      }
+      
+      // Create blob URL for preview
+      const blobUrl = URL.createObjectURL(file);
+      setWallImage(blobUrl);
+      
+      // Optional: Upload to backend for persistence
+      // uploadWallImageToBackend(file);
     }
   };
 
@@ -619,6 +638,45 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                   />
                 ))}
                 </div>
+              </div>
+              <div className="section-card">
+                <div className="section-title">Upload Wall Background</div>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
+                  Upload your own wall background image
+                </div>
+                <label className="upload-label upload-btn" style={{ 
+                  display: 'block', 
+                  marginBottom: 8,
+                  background: '#4CAF50',
+                  color: 'white',
+                  padding: '10px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  fontWeight: '500'
+                }}>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    style={{ display: 'none' }} 
+                    onChange={handleWallImageChange}
+                    id="wall-background-upload"
+                  />
+                  📷 Upload Wall Background
+                </label>
+                {wallImage && wallImage.startsWith('blob:') && (
+                  <div style={{ 
+                    marginTop: 8, 
+                    fontSize: 12, 
+                    color: '#4CAF50',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    ✅ Custom wall background uploaded
+                  </div>
+                )}
               </div>
               <div className="section-card">
                 <div className="section-title">Add Images</div>
