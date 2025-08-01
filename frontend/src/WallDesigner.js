@@ -4,7 +4,8 @@ import html2canvas from "html2canvas";
 import "./App.css";
 import "./components/Wall.css";
 import { useNavigate } from "react-router-dom";
-import { getApiUrl, getAdminApiUrl, config } from "./config/config";
+import { getApiUrl, getAdminApiUrl } from "./config/config";
+import config from "./config/config";
 
 // Helper to generate unique IDs
 function generateId() {
