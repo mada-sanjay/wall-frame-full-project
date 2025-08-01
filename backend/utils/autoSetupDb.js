@@ -131,6 +131,55 @@ const autoSetupDatabase = async () => {
     await createTables(db);
     await createAdminUser(db);
     
+    // Additional fix for database structure
+    console.log('🔧 Checking and fixing database structure...');
+    await new Promise((resolve, reject) => {
+      db.query('DESCRIBE drafts', (err, results) => {
+        if (err) {
+          console.log('❌ Drafts table does not exist, creating it...');
+          const createDraftsTable = `
+            CREATE TABLE drafts (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              user_id INT NOT NULL,
+              user_email VARCHAR(255) NOT NULL,
+              data JSON NOT NULL,
+              share_token VARCHAR(255) UNIQUE,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+          `;
+          db.query(createDraftsTable, (err2) => {
+            if (err2) {
+              console.error('❌ Error creating drafts table:', err2);
+              reject(err2);
+            } else {
+              console.log('✅ Drafts table created successfully');
+              resolve();
+            }
+          });
+        } else {
+          console.log('✅ Drafts table exists, checking columns...');
+          const hasUserEmail = results.some(col => col.Field === 'user_email');
+          if (!hasUserEmail) {
+            console.log('❌ user_email column missing, adding it...');
+            db.query('ALTER TABLE drafts ADD COLUMN user_email VARCHAR(255) NOT NULL AFTER user_id', (err2) => {
+              if (err2) {
+                console.error('❌ Error adding user_email column:', err2);
+                reject(err2);
+              } else {
+                console.log('✅ user_email column added successfully');
+                resolve();
+              }
+            });
+          } else {
+            console.log('✅ user_email column exists');
+            resolve();
+          }
+        }
+      });
+    });
+    
     console.log('✅ Database auto-setup completed successfully!');
     db.end();
   } catch (error) {
