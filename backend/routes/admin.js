@@ -16,13 +16,31 @@ function authenticateToken(req, res, next) {
   });
 }
 
+// --- ADMIN MIDDLEWARE ---
 function requireAdmin(req, res, next) {
-  db.query('SELECT isAdmin FROM users WHERE id = ?', [req.user.id], (err, results) => {
-    if (err || !results.length || !results[0].isAdmin) {
-      return res.status(403).json({ message: 'Admin access required' });
+  // req.user is set by authenticateToken
+  const userId = req.user && req.user.id;
+  console.log('🔍 requireAdmin middleware - User ID:', userId);
+  if (!userId) {
+    console.log('❌ requireAdmin - No user ID found');
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  db.query(
+    'SELECT isAdmin FROM users WHERE id = ?',
+    [userId],
+    (err, results) => {
+      if (err) {
+        console.error('❌ requireAdmin - Database error:', err);
+        return res.status(500).json({ message: 'Database error', error: err });
+      }
+      if (!results.length || !results[0].isAdmin) {
+        console.log('❌ requireAdmin - User is not admin. Results:', results);
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+      console.log('✅ requireAdmin - User is admin');
+      next();
     }
-    next();
-  });
+  );
 }
 
 // Admin: Delete user's draft
@@ -71,6 +89,9 @@ router.get('/users', authenticateToken, requireAdmin, (req, res) => {
 // Get all drafts
 router.get('/drafts', authenticateToken, requireAdmin, (req, res) => {
   console.log('🔍 Admin /drafts endpoint called');
+  console.log('🔍 User making request:', req.user);
+  console.log('🔍 User ID:', req.user.id);
+  
   db.query('SELECT d.id, d.user_id, d.user_email, d.data, d.created_at, d.share_token, u.email as userEmail, CONCAT("Draft ", d.id) as name FROM drafts d JOIN users u ON d.user_id = u.id LIMIT 50', (err, results) => {
     if (err) {
       console.error('❌ Admin drafts query error:', err);
@@ -78,6 +99,7 @@ router.get('/drafts', authenticateToken, requireAdmin, (req, res) => {
     }
     console.log('✅ Admin drafts fetched:', results.length);
     console.log('🔍 Draft IDs:', results.map(r => r.id));
+    console.log('🔍 Draft users:', results.map(r => r.userEmail));
     res.json({ drafts: results });
   });
 });
