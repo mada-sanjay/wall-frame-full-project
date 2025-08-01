@@ -172,8 +172,8 @@ router.post('/save-session', authenticateToken, (req, res) => {
           const shareToken = uuidv4();
           console.log('About to insert draft with token:', shareToken);
           db.query(
-            'INSERT INTO drafts (name, user_id, data) VALUES (?, (SELECT id FROM users WHERE email = ?), ?)',
-            [`Draft ${new Date().toLocaleString()}`, user_email, JSON.stringify(session_data)],
+            'INSERT INTO drafts (user_id, user_email, data, share_token) VALUES ((SELECT id FROM users WHERE email = ?), ?, ?, ?)',
+            [user_email, user_email, JSON.stringify(session_data), shareToken],
             (err, result) => {
               if (err) {
                 console.error('Error inserting draft:', err);
@@ -200,7 +200,7 @@ router.put('/update-session/:id', authenticateToken, (req, res) => {
     return res.status(400).json({ message: 'Missing user_email or session_data' });
   }
   db.query(
-    'UPDATE drafts SET data = ? WHERE id = ? AND user_id = (SELECT id FROM users WHERE email = ?)',
+    'UPDATE drafts SET data = ? WHERE id = ? AND user_email = ?',
     [JSON.stringify(session_data), id, user_email],
     (err, result) => {
       if (err) {
@@ -209,9 +209,18 @@ router.put('/update-session/:id', authenticateToken, (req, res) => {
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: 'Session not found or unauthorized' });
       }
-      // Fetch share_token to return (we'll use a simple token for now)
+      // Generate a new share token for updated draft
       const shareToken = uuidv4();
-      res.json({ message: 'Session updated successfully', share_token: shareToken });
+      db.query(
+        'UPDATE drafts SET share_token = ? WHERE id = ?',
+        [shareToken, id],
+        (err2) => {
+          if (err2) {
+            console.error('Error updating share token:', err2);
+          }
+          res.json({ message: 'Session updated successfully', share_token: shareToken });
+        }
+      );
     }
   );
 });
@@ -222,7 +231,7 @@ router.get('/sessions', authenticateToken, (req, res) => {
     return res.status(400).json({ message: 'Missing user_email' });
   }
   db.query(
-    'SELECT d.id, d.data as session_data, d.created_at, CONCAT("share_", d.id) as share_token FROM drafts d JOIN users u ON d.user_id = u.id WHERE u.email = ? ORDER BY d.created_at DESC',
+    'SELECT d.id, d.data as session_data, d.created_at, d.share_token FROM drafts d WHERE d.user_email = ? ORDER BY d.created_at DESC',
     [user_email],
     (err, results) => {
       if (err) {
@@ -241,7 +250,7 @@ router.delete('/session/:id', authenticateToken, (req, res) => {
     return res.status(400).json({ message: 'Missing user_email' });
   }
   db.query(
-    'DELETE d FROM drafts d JOIN users u ON d.user_id = u.id WHERE d.id = ? AND u.email = ?',
+    'DELETE FROM drafts WHERE id = ? AND user_email = ?',
     [id, user_email],
     (err, result) => {
       if (err) {

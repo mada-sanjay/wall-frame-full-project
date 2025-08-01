@@ -49,6 +49,19 @@ app.get('/debug-env', (req, res) => {
   });
 });
 
+// Debug endpoint to check authentication
+app.get('/debug-auth', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  res.status(200).json({
+    hasAuthHeader: !!authHeader,
+    hasToken: !!token,
+    tokenLength: token ? token.length : 0,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Test database connection endpoint
 app.get('/test-db', async (req, res) => {
   try {
