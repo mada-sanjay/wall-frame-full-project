@@ -151,9 +151,7 @@ router.post('/save-session', authenticateToken, (req, res) => {
         return res.status(500).json({ message: 'User not found' });
       }
       const plan = results[0].plan || 'basic';
-      let draftLimit = 3;
-      if (plan === 'pro') draftLimit = 6;
-      if (plan === 'pro_max') draftLimit = Infinity;
+      const draftLimit = config.plans[plan]?.draftLimit || config.plans.basic.draftLimit;
       console.log('User plan:', plan, 'Draft limit:', draftLimit);
       
       db.query(
@@ -431,6 +429,7 @@ router.delete('/admin/users/:id', authenticateToken, requireAdmin, (req, res) =>
 // List all drafts
 router.get('/admin/drafts', authenticateToken, requireAdmin, (req, res) => {
   console.log('GET /admin/drafts called');
+  console.log('User making request:', req.user);
   db.query(
     'SELECT d.id, d.user_email as userEmail, d.data as session_data, d.created_at, CONCAT("Draft ", d.id) as name FROM drafts d ORDER BY d.created_at DESC',
     (err, results) => {

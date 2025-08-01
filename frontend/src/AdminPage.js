@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getApiUrl, getAdminApiUrl } from "./config/config";
+import { getApiUrl, getAdminApiUrl, config } from "./config/config";
 
 const SECTIONS = [
   { key: "analytics", label: "Analytics", icon: "📊" },
@@ -156,7 +156,7 @@ function AdminPage() {
     
     if (response.ok) {
       const data = await response.json();
-      return `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}${data.imageUrl}`;
+      return `${config.api.baseUrl}${data.imageUrl}`;
     } else {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Upload failed');
