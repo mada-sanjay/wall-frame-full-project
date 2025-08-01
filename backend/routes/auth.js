@@ -168,7 +168,15 @@ router.post('/save-session', authenticateToken, (req, res) => {
           console.log('Current draft count:', draftCount, 'Limit:', draftLimit);
           if (draftCount >= draftLimit) {
             console.log('Draft limit reached for user:', user_email, 'Plan:', plan, 'Count:', draftCount, 'Limit:', draftLimit);
-            return res.status(403).json({ message: `Draft limit reached for your plan (${plan}). Upgrade your plan to save more drafts.` });
+            return res.status(403).json({ 
+              message: `Draft limit reached for your plan (${plan}). Upgrade your plan to save more drafts.`,
+              details: {
+                plan,
+                draftLimit,
+                currentDraftCount: draftCount,
+                remainingDrafts: 0
+              }
+            });
           }
           const shareToken = uuidv4();
           console.log('About to insert draft with token:', shareToken);
@@ -496,6 +504,51 @@ router.get('/admin/stats', authenticateToken, requireAdmin, async (req, res) => 
     console.error('Error in stats:', err);
     res.status(500).json({ message: 'Error fetching stats', error: err });
   }
+});
+
+// Debug endpoint to check user's draft count and plan
+router.get('/debug/user-drafts', authenticateToken, (req, res) => {
+  const { user_email } = req.query;
+  if (!user_email) {
+    return res.status(400).json({ message: 'Missing user_email' });
+  }
+  
+  db.query(
+    'SELECT plan FROM users WHERE email = ?',
+    [user_email],
+    (err, userResults) => {
+      if (err) {
+        return res.status(500).json({ message: 'Database error', error: err.message });
+      }
+      if (!userResults.length) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      const plan = userResults[0].plan || 'basic';
+      const draftLimit = config.plans[plan]?.draftLimit || config.plans.basic.draftLimit;
+      
+      db.query(
+        'SELECT COUNT(*) as draftCount FROM drafts WHERE user_email = ?',
+        [user_email],
+        (err2, countResults) => {
+          if (err2) {
+            return res.status(500).json({ message: 'Database error', error: err2.message });
+          }
+          
+          const draftCount = countResults[0].draftCount;
+          
+          res.json({
+            user_email,
+            plan,
+            draftLimit,
+            currentDraftCount: draftCount,
+            canSaveMore: draftCount < draftLimit,
+            remainingDrafts: Math.max(0, draftLimit - draftCount)
+          });
+        }
+      );
+    }
+  );
 });
 
 // Add endpoint to fetch by share_token
