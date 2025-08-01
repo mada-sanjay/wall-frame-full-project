@@ -161,22 +161,75 @@ const autoSetupDatabase = async () => {
         } else {
           console.log('✅ Drafts table exists, checking columns...');
           const hasUserEmail = results.some(col => col.Field === 'user_email');
+          const hasShareToken = results.some(col => col.Field === 'share_token');
+          
+          let needsUpdate = false;
+          let updatePromises = [];
+          
           if (!hasUserEmail) {
             console.log('❌ user_email column missing, adding it...');
-            db.query('ALTER TABLE drafts ADD COLUMN user_email VARCHAR(255) NOT NULL AFTER user_id', (err2) => {
-              if (err2) {
-                console.error('❌ Error adding user_email column:', err2);
-                reject(err2);
-              } else {
-                console.log('✅ user_email column added successfully');
-                resolve();
-              }
-            });
+            needsUpdate = true;
+            updatePromises.push(new Promise((resolve, reject) => {
+              db.query('ALTER TABLE drafts ADD COLUMN user_email VARCHAR(255) NOT NULL AFTER user_id', (err2) => {
+                if (err2) {
+                  console.error('❌ Error adding user_email column:', err2);
+                  reject(err2);
+                } else {
+                  console.log('✅ user_email column added successfully');
+                  resolve();
+                }
+              });
+            }));
           } else {
             console.log('✅ user_email column exists');
+          }
+          
+          if (!hasShareToken) {
+            console.log('❌ share_token column missing, adding it...');
+            needsUpdate = true;
+            updatePromises.push(new Promise((resolve, reject) => {
+              db.query('ALTER TABLE drafts ADD COLUMN share_token VARCHAR(255) UNIQUE', (err2) => {
+                if (err2) {
+                  console.error('❌ Error adding share_token column:', err2);
+                  reject(err2);
+                } else {
+                  console.log('✅ share_token column added successfully');
+                  resolve();
+                }
+              });
+            }));
+          } else {
+            console.log('✅ share_token column exists');
+          }
+          
+          if (needsUpdate) {
+            Promise.all(updatePromises)
+              .then(() => resolve())
+              .catch((err) => reject(err));
+          } else {
             resolve();
           }
         }
+      });
+    });
+    
+    // Fix existing drafts with missing user_email
+    console.log('🔧 Fixing existing drafts with missing user_email...');
+    await new Promise((resolve, reject) => {
+      db.query(`
+        UPDATE drafts d 
+        JOIN users u ON d.user_id = u.id 
+        SET d.user_email = u.email 
+        WHERE d.user_email IS NULL OR d.user_email = ''
+      `, (err, result) => {
+        if (err) {
+          console.error('❌ Error updating existing drafts:', err);
+          // Don't reject, just log the error
+          console.log('⚠️ Could not update existing drafts, but continuing...');
+        } else {
+          console.log(`✅ Updated ${result.affectedRows} existing drafts with user_email`);
+        }
+        resolve();
       });
     });
     

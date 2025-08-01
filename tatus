@@ -1,0 +1,5 @@
+[33ma4ede8a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix database structure issue: Add user_email column check and creation in autoSetupDb.js to resolve 'Unknown column user_email' error
+[33m656fd48[m Fix multiple issues: 1) Add _redirects for React Router 404 fix, 2) Improve save draft error handling with detailed logging, 3) Add error display in UI, 4) Button color already fixed
+[33m614edc6[m Fix image URLs in public decorations endpoints - add full server URL to image paths
+[33m6822ced[m Fix config import in WallDesigner.js - change from named to default import
+[33m7d879aa[m Add debug endpoint and improve save draft error handling

@@ -131,10 +131,17 @@ router.post('/login', (req, res) => {
   );
 });
 
+// Test endpoint to check if routes are working
+router.get('/test-save-session', (req, res) => {
+  res.json({ message: 'Save session endpoint is accessible', timestamp: new Date().toISOString() });
+});
+
 // Protect draft/session endpoints with JWT
 router.post('/save-session', authenticateToken, (req, res) => {
   console.log('POST /save-session called with:', req.body);
   console.log('User making request:', req.user);
+  console.log('Request headers:', req.headers);
+  
   const { user_email, session_data } = req.body;
   if (!user_email || !session_data) {
     console.log('Missing user_email or session_data');
@@ -180,19 +187,35 @@ router.post('/save-session', authenticateToken, (req, res) => {
           }
           const shareToken = uuidv4();
           console.log('About to insert draft with token:', shareToken);
+          // First get the user_id, then insert the draft
           db.query(
-            'INSERT INTO drafts (user_id, user_email, data, share_token) VALUES ((SELECT id FROM users WHERE email = ?), ?, ?, ?)',
-            [user_email, user_email, JSON.stringify(session_data), shareToken],
-            (err, result) => {
+            'SELECT id FROM users WHERE email = ?',
+            [user_email],
+            (err, userResult) => {
               if (err) {
-                console.error('Error inserting draft:', err);
+                console.error('Error finding user ID:', err);
                 return res.status(500).json({ message: 'Database error', error: err.message });
               }
-              console.log('Draft inserted successfully with ID:', result.insertId);
-              // Send email notification to user
-              sendEmail(user_email, 'draftCreated', result.insertId)
-                .then(() => res.json({ message: 'Session saved and email sent', sessionId: result.insertId, share_token: shareToken }))
-                .catch(() => res.json({ message: 'Session saved, but failed to send email', sessionId: result.insertId, share_token: shareToken }));
+              if (!userResult.length) {
+                return res.status(500).json({ message: 'User not found' });
+              }
+              
+              const userId = userResult[0].id;
+              db.query(
+                'INSERT INTO drafts (user_id, user_email, data, share_token) VALUES (?, ?, ?, ?)',
+                [userId, user_email, JSON.stringify(session_data), shareToken],
+                (err, result) => {
+                  if (err) {
+                    console.error('Error inserting draft:', err);
+                    return res.status(500).json({ message: 'Database error', error: err.message });
+                  }
+                  console.log('Draft inserted successfully with ID:', result.insertId);
+                  // Send email notification to user
+                  sendEmail(user_email, 'draftCreated', result.insertId)
+                    .then(() => res.json({ message: 'Session saved and email sent', sessionId: result.insertId, share_token: shareToken }))
+                    .catch(() => res.json({ message: 'Session saved, but failed to send email', sessionId: result.insertId, share_token: shareToken }));
+                }
+              );
             }
           );
         }
