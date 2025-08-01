@@ -302,19 +302,28 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
 
   const fetchDrafts = async () => {
     const user_email = localStorage.getItem("userEmail");
-    if (!user_email) return;
+    console.log('🔍 fetchDrafts called with user_email:', user_email);
+    if (!user_email) {
+      console.log('❌ No user_email found in localStorage');
+      return;
+    }
     try {
+      const token = localStorage.getItem('token');
+      console.log('🔍 Making request to fetch drafts with token:', !!token);
       const res = await fetch(getApiUrl(`/sessions?user_email=${encodeURIComponent(user_email)}`), {
-        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
+        headers: { "Authorization": `Bearer ${token}` }
       });
+      console.log('🔍 Response status:', res.status);
       const data = await res.json();
+      console.log('🔍 Response data:', data);
       if (res.ok) {
+        console.log('✅ Drafts fetched successfully:', data.sessions?.length || 0, 'drafts');
         setSavedSessions(data.sessions);
       } else {
-        console.error("Failed to fetch drafts:", data.message);
+        console.error("❌ Failed to fetch drafts:", data.message);
       }
     } catch (err) {
-      console.error("Failed to fetch drafts:", err);
+      console.error("❌ Network error while fetching drafts:", err);
     }
   };
 

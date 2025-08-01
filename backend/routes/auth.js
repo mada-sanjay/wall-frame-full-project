@@ -259,16 +259,24 @@ router.put('/update-session/:id', authenticateToken, (req, res) => {
 
 router.get('/sessions', authenticateToken, (req, res) => {
   const { user_email } = req.query;
+  console.log('🔍 /sessions endpoint called with user_email:', user_email);
   if (!user_email) {
+    console.log('❌ Missing user_email in request');
     return res.status(400).json({ message: 'Missing user_email' });
   }
+  console.log('🔍 Querying database for drafts with user_email:', user_email);
+  
+  // Remove ORDER BY to avoid sort memory issues
   db.query(
-    'SELECT d.id, d.data as session_data, d.created_at, d.share_token FROM drafts d WHERE d.user_email = ? ORDER BY d.created_at DESC',
+    'SELECT d.id, d.data as session_data, d.created_at, d.share_token FROM drafts d WHERE d.user_email = ? LIMIT 20',
     [user_email],
     (err, results) => {
       if (err) {
+        console.error('❌ Database error:', err);
         return res.status(500).json({ message: 'Database error', error: err });
       }
+      console.log('✅ Found', results.length, 'drafts for user:', user_email);
+      console.log('🔍 Draft IDs:', results.map(r => r.id));
       res.json({ sessions: results });
     }
   );
