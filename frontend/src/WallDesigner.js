@@ -222,14 +222,25 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const handleSaveDraft = async () => {
     setSaveError("");
     const user_email = localStorage.getItem("userEmail");
+    const token = localStorage.getItem('token');
+    
+    console.log('Save draft attempt:', { user_email, hasToken: !!token, currentDraftId });
+    
     if (!user_email) {
-      alert("You must be logged in to save a draft.");
+      setSaveError("You must be logged in to save a draft.");
       return;
     }
+    
+    if (!token) {
+      setSaveError("Authentication token missing. Please log in again.");
+      return;
+    }
+    
     if (draftLimit !== Infinity && draftCount >= draftLimit && !currentDraftId) {
       setSaveError(`Draft limit reached for your plan (${plan}). Upgrade your plan to save more drafts.`);
       return;
     }
+    
     // Gather session state
     const session_data = {
       wallSize,
@@ -240,26 +251,29 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       // Add more state as needed
     };
     
+    console.log('Session data to save:', session_data);
+    
     try {
       let res;
-      const token = localStorage.getItem('token');
-      if (currentDraftId) {
-        // Update existing draft
-        res = await fetch(getApiUrl(`/update-session/${currentDraftId}`), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify({ user_email, session_data })
-        });
-      } else {
-        // Create new draft
-        res = await fetch(getApiUrl("/save-session"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify({ user_email, session_data })
-        });
-      }
+      const url = currentDraftId ? getApiUrl(`/update-session/${currentDraftId}`) : getApiUrl("/save-session");
+      const method = currentDraftId ? "PUT" : "POST";
+      
+      console.log('Making request to:', url, 'Method:', method);
+      
+      res = await fetch(url, {
+        method: method,
+        headers: { 
+          "Content-Type": "application/json", 
+          "Authorization": `Bearer ${token}` 
+        },
+        body: JSON.stringify({ user_email, session_data })
+      });
+      
+      console.log('Response status:', res.status);
       
       const data = await res.json();
+      console.log('Response data:', data);
+      
       if (res.ok) {
         if (currentDraftId) {
           alert("Draft updated successfully!");
@@ -277,10 +291,12 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         // Update draft count after save
         setDraftCount(prev => prev + (currentDraftId ? 0 : 1));
       } else {
-        setSaveError(data.message || "Failed to save draft.");
+        console.error('Save draft failed:', data);
+        setSaveError(data.message || `Failed to save draft. Status: ${res.status}`);
       }
     } catch (err) {
-      setSaveError("Network error while saving draft.");
+      console.error('Network error saving draft:', err);
+      setSaveError(`Network error while saving draft: ${err.message}`);
     }
   };
 
@@ -594,6 +610,17 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           <button className="action-btn reset-save-btn" onClick={handleSaveDraft}>
             <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>💾</span> {currentDraftId ? 'Update Draft' : 'Save Draft'}
           </button>
+          {saveError && (
+            <div style={{ 
+              color: '#ff4444', 
+              fontSize: '12px', 
+              marginLeft: '8px',
+              maxWidth: '200px',
+              wordWrap: 'break-word'
+            }}>
+              ❌ {saveError}
+            </div>
+          )}
         </div>
         <div className="divider-line" />
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', paddingRight: 18 }}>
@@ -647,14 +674,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                 </div>
                 <label className="upload-label upload-btn" style={{ 
                   display: 'block', 
-                  marginBottom: 8,
-                  background: '#4CAF50',
-                  color: 'white',
-                  padding: '10px 16px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  fontWeight: '500'
+                  marginBottom: 8
                 }}>
                   <input 
                     type="file" 
