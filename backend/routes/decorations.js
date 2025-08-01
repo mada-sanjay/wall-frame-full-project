@@ -59,8 +59,15 @@ router.get('/decorations', authenticateToken, requireAdmin, (req, res) => {
   db.query('SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     
-    // Return decorations as-is since URLs are already complete
-    res.json({ decorations: results });
+    // Fix image URLs - handle both full URLs and relative paths
+    const decorationsWithFixedUrls = results.map(decoration => ({
+      ...decoration,
+      image: decoration.image ? 
+        (decoration.image.startsWith('http') ? decoration.image : `${config.api.baseUrl}${decoration.image}`) : 
+        null
+    }));
+    
+    res.json({ decorations: decorationsWithFixedUrls });
   });
 });
 
@@ -69,8 +76,15 @@ router.get('/decorations/pending', authenticateToken, requireAdmin, (req, res) =
   db.query('SELECT * FROM decorations WHERE status = "Pending" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     
-    // Return decorations as-is since URLs are already complete
-    res.json({ decorations: results });
+    // Fix image URLs - handle both full URLs and relative paths
+    const decorationsWithFixedUrls = results.map(decoration => ({
+      ...decoration,
+      image: decoration.image ? 
+        (decoration.image.startsWith('http') ? decoration.image : `${config.api.baseUrl}${decoration.image}`) : 
+        null
+    }));
+    
+    res.json({ decorations: decorationsWithFixedUrls });
   });
 });
 
@@ -90,13 +104,15 @@ router.post('/decorations', authenticateToken, requireAdmin, (req, res) => {
       db.query('SELECT * FROM decorations WHERE id = ?', [results.insertId], (err2, rows) => {
         if (err2 || !rows.length) return res.json({ message: 'Decoration added' });
         
-        // Add full server URL to image path
-        const decorationWithFullUrl = {
+        // Fix image URL - handle both full URLs and relative paths
+        const decorationWithFixedUrl = {
           ...rows[0],
-          image: rows[0].image ? `${config.api.baseUrl}${rows[0].image}` : null
+          image: rows[0].image ? 
+            (rows[0].image.startsWith('http') ? rows[0].image : `${config.api.baseUrl}${rows[0].image}`) : 
+            null
         };
         
-        res.json({ decoration: decorationWithFullUrl });
+        res.json({ decoration: decorationWithFixedUrl });
       });
     }
   );
@@ -117,13 +133,15 @@ router.post('/decorations/:id/approve', authenticateToken, requireAdmin, (req, r
     db.query('SELECT * FROM decorations WHERE id = ?', [req.params.id], (err2, rows) => {
       if (err2 || !rows.length) return res.json({ message: 'Decoration approved' });
       
-              // Add full server URL to image path
-        const decorationWithFullUrl = {
-          ...rows[0],
-          image: rows[0].image ? `${config.api.baseUrl}${rows[0].image}` : null
-        };
-      
-      res.json({ decoration: decorationWithFullUrl });
+      // Fix image URL - handle both full URLs and relative paths
+      const decorationWithFixedUrl = {
+        ...rows[0],
+        image: rows[0].image ? 
+          (rows[0].image.startsWith('http') ? rows[0].image : `${config.api.baseUrl}${rows[0].image}`) : 
+          null
+      };
+    
+      res.json({ decoration: decorationWithFixedUrl });
     });
   });
 });
@@ -166,13 +184,15 @@ router.get('/decorations/public/:plan', (req, res) => {
   db.query(query, (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     
-    // Add full server URL to image paths
-    const decorationsWithFullUrls = results.map(decoration => ({
+    // Fix image URLs - handle both full URLs and relative paths
+    const decorationsWithFixedUrls = results.map(decoration => ({
       ...decoration,
-      image: decoration.image ? `${config.api.baseUrl}${decoration.image}` : null
+      image: decoration.image ? 
+        (decoration.image.startsWith('http') ? decoration.image : `${config.api.baseUrl}${decoration.image}`) : 
+        null
     }));
     
-    res.json({ decorations: decorationsWithFullUrls });
+    res.json({ decorations: decorationsWithFixedUrls });
   });
 });
 
@@ -181,13 +201,15 @@ router.get('/decorations/public', (req, res) => {
   db.query('SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     
-    // Add full server URL to image paths
-    const decorationsWithFullUrls = results.map(decoration => ({
+    // Fix image URLs - handle both full URLs and relative paths
+    const decorationsWithFixedUrls = results.map(decoration => ({
       ...decoration,
-      image: decoration.image ? `${config.api.baseUrl}${decoration.image}` : null
+      image: decoration.image ? 
+        (decoration.image.startsWith('http') ? decoration.image : `${config.api.baseUrl}${decoration.image}`) : 
+        null
     }));
     
-    res.json({ decorations: decorationsWithFullUrls });
+    res.json({ decorations: decorationsWithFixedUrls });
   });
 });
 

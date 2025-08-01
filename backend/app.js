@@ -9,12 +9,19 @@ const app = express();
 // Production-ready CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log('🔍 CORS check for origin:', origin);
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('✅ Allowing request with no origin');
+      return callback(null, true);
+    }
     
     if (config.cors.allowedOrigins.indexOf(origin) !== -1) {
+      console.log('✅ Allowing origin:', origin);
       callback(null, true);
     } else {
+      console.log('❌ Blocking origin:', origin);
+      console.log('🔍 Allowed origins:', config.cors.allowedOrigins);
       callback(new Error('Not allowed by CORS'));
     }
   },
