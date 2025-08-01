@@ -2,6 +2,7 @@
   "name": "wall-frame-frontend",
   "version": "1.0.0",
   "private": true,
+  "homepage": "https://wall-frame-full-project-frontend.onrender.com",
   "description": "Wall Frame Design Platform Frontend",
   "dependencies": {
     "html2canvas": "^1.4.1",
