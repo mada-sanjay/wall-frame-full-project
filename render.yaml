@@ -39,4 +39,23 @@ services:
       - key: PRO_PLAN_DRAFTS
         value: 6
       - key: PRO_MAX_PLAN_DRAFTS
-        value: 999 
+        value: 999
+
+  - type: web
+    name: wall-frame-frontend
+    env: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./build
+    envVars:
+      - key: REACT_APP_API_BASE_URL
+        value: https://wall-frame-full-project.onrender.com
+      - key: REACT_APP_ENABLE_EMAIL_NOTIFICATIONS
+        value: true
+      - key: REACT_APP_ENABLE_FILE_UPLOAD
+        value: true
+      - key: REACT_APP_ENABLE_ADMIN_PANEL
+        value: true
+      - key: REACT_APP_MAX_FILE_SIZE
+        value: 5242880 
