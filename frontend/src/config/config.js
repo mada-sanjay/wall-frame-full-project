@@ -1,7 +1,10 @@
 const config = {
   // API Configuration
   api: {
-    baseUrl: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000',
+    baseUrl: process.env.REACT_APP_API_BASE_URL || 
+      (process.env.NODE_ENV === 'production' 
+        ? 'https://wall-frame-full-project.onrender.com' 
+        : 'http://localhost:5000'),
     prefix: '/api'
   },
   

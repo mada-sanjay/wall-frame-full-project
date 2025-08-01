@@ -81,8 +81,9 @@ const createTables = (db) => {
 
 const createAdminUser = (db) => {
   return new Promise((resolve, reject) => {
-    const adminEmail = 'admin@wallframe.com';
-    const adminPassword = 'admin123';
+    // Create admin user
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@wallframe.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
     
     bcrypt.hash(adminPassword, 10, (err, hash) => {
       if (err) {

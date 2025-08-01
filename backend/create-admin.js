@@ -23,9 +23,9 @@ connection.connect((err) => {
 
   console.log('✅ Connected to database');
   
-  // Admin user details
-  const adminEmail = 'admin@wallframe.com';
-  const adminPassword = 'admin123';
+  // Create admin user
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@wallframe.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
   
   // Hash the password
   bcrypt.hash(adminPassword, 10, (err, hash) => {

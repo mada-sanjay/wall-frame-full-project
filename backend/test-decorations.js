@@ -40,8 +40,11 @@ const testDecorations = async () => {
           reject(err);
         } else {
           console.log('📋 Total decorations in database:', results.length);
+          if (results.length > 0) {
+            console.log('🔍 Decoration table columns:', Object.keys(results[0]));
+          }
           results.forEach(decoration => {
-            console.log(`ID: ${decoration.id}, Name: ${decoration.name}, Image: ${decoration.image}, Status: ${decoration.status}`);
+            console.log(`ID: ${decoration.id}, Name: ${decoration.name}, Image: ${decoration.image}, Status: ${decoration.status}, Plan: ${decoration.subscription_plan || 'NOT SET'}`);
           });
           resolve();
         }

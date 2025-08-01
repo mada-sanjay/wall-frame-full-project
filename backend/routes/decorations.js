@@ -90,12 +90,19 @@ router.get('/decorations/pending', authenticateToken, requireAdmin, (req, res) =
 
 // Add new decoration
 router.post('/decorations', authenticateToken, requireAdmin, (req, res) => {
-  const { name, category, image } = req.body;
+  const { name, category, image, subscription_plan = 'basic' } = req.body;
   if (!name || !category || !image) {
     return res.status(400).json({ message: 'Missing fields' });
   }
-  db.query('INSERT INTO decorations (name, category, image, status) VALUES (?, ?, ?, "Active")',
-    [name, category, image],
+  
+  // Validate subscription plan
+  const validPlans = ['basic', 'pro', 'pro_max'];
+  if (!validPlans.includes(subscription_plan)) {
+    return res.status(400).json({ message: 'Invalid subscription plan' });
+  }
+  
+  db.query('INSERT INTO decorations (name, category, image, status, subscription_plan) VALUES (?, ?, ?, "Active", ?)',
+    [name, category, image, subscription_plan],
     (err, results) => {
       if (err) {
         console.error('Error adding decoration:', err);
@@ -178,10 +185,22 @@ router.get('/decorations/public/:plan', (req, res) => {
     return res.status(400).json({ message: 'Invalid subscription plan' });
   }
   
-  // For now, return all active decorations since we don't have subscription_plan column
-  const query = 'SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC';
+  // Filter decorations by subscription plan
+  let query;
+  let params = [];
   
-  db.query(query, (err, results) => {
+  if (plan === 'basic') {
+    // Basic users get only basic decorations
+    query = 'SELECT * FROM decorations WHERE status = "Active" AND subscription_plan = "basic" ORDER BY id DESC';
+  } else if (plan === 'pro') {
+    // Pro users get basic and pro decorations
+    query = 'SELECT * FROM decorations WHERE status = "Active" AND (subscription_plan = "basic" OR subscription_plan = "pro") ORDER BY id DESC';
+  } else if (plan === 'pro_max') {
+    // Pro_max users get all decorations
+    query = 'SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC';
+  }
+  
+  db.query(query, params, (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     
     // Fix image URLs - handle both full URLs and relative paths
@@ -198,7 +217,8 @@ router.get('/decorations/public/:plan', (req, res) => {
 
 // Public: List all active decorations for users
 router.get('/decorations/public', (req, res) => {
-  db.query('SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC', (err, results) => {
+  // Default to basic decorations for backward compatibility
+  db.query('SELECT * FROM decorations WHERE status = "Active" AND subscription_plan = "basic" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     
     // Fix image URLs - handle both full URLs and relative paths
