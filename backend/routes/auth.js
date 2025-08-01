@@ -134,8 +134,10 @@ router.post('/login', (req, res) => {
 // Protect draft/session endpoints with JWT
 router.post('/save-session', authenticateToken, (req, res) => {
   console.log('POST /save-session called with:', req.body);
+  console.log('User making request:', req.user);
   const { user_email, session_data } = req.body;
   if (!user_email || !session_data) {
+    console.log('Missing user_email or session_data');
     return res.status(400).json({ message: 'Missing user_email or session_data' });
   }
   // Enforce draft limits based on user plan
@@ -154,17 +156,18 @@ router.post('/save-session', authenticateToken, (req, res) => {
       const draftLimit = config.plans[plan]?.draftLimit || config.plans.basic.draftLimit;
       console.log('User plan:', plan, 'Draft limit:', draftLimit);
       
-      db.query(
-        'SELECT COUNT(*) as draftCount FROM drafts WHERE user_id = (SELECT id FROM users WHERE email = ?)',
-        [user_email],
+              db.query(
+          'SELECT COUNT(*) as draftCount FROM drafts WHERE user_email = ?',
+          [user_email],
         (err2, countResults) => {
           if (err2) {
             console.error('Error counting drafts:', err2);
             return res.status(500).json({ message: 'Database error', error: err2.message });
           }
           const draftCount = countResults[0].draftCount;
-          console.log('Current draft count:', draftCount);
+          console.log('Current draft count:', draftCount, 'Limit:', draftLimit);
           if (draftCount >= draftLimit) {
+            console.log('Draft limit reached for user:', user_email, 'Plan:', plan, 'Count:', draftCount, 'Limit:', draftLimit);
             return res.status(403).json({ message: `Draft limit reached for your plan (${plan}). Upgrade your plan to save more drafts.` });
           }
           const shareToken = uuidv4();
