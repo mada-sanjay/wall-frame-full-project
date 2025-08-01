@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getApiUrl, getAdminApiUrl, config } from "./config/config";
+import { getApiUrl, getAdminApiUrl } from "./config/config";
+import config from "./config/config";
 
 const SECTIONS = [
   { key: "analytics", label: "Analytics", icon: "📊" },
