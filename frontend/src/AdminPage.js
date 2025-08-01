@@ -73,19 +73,30 @@ function AdminPage() {
   // Fetch admin data
   const fetchAdminData = () => {
     const token = localStorage.getItem('token');
+    console.log('🔍 Fetching admin data with token:', !!token);
+    
     Promise.all([
       fetch(getAdminApiUrl('/users'), { headers: { Authorization: `Bearer ${token}` } }),
       fetch(getAdminApiUrl('/drafts'), { headers: { Authorization: `Bearer ${token}` } }),
       fetch(getAdminApiUrl('/stats'), { headers: { Authorization: `Bearer ${token}` } })
     ])
-      .then(responses => Promise.all(responses.map(res => res.json())))
+      .then(responses => {
+        console.log('🔍 Admin API responses:', responses.map(r => r.status));
+        return Promise.all(responses.map(res => res.json()));
+      })
       .then(([userRes, draftRes, statsRes]) => {
+        console.log('🔍 Admin data received:', {
+          users: userRes.users?.length || 0,
+          drafts: draftRes.drafts?.length || 0,
+          stats: statsRes
+        });
         setUsers(userRes.users || []);
         setDrafts(draftRes.drafts || []);
         setStats(statsRes || { userCount: 0, draftCount: 0 });
         setLoading(false);
       })
       .catch((err) => {
+        console.error('❌ Admin data fetch error:', err);
         setError("Failed to load admin data");
         setLoading(false);
       });

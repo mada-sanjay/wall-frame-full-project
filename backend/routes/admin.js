@@ -70,9 +70,14 @@ router.get('/users', authenticateToken, requireAdmin, (req, res) => {
 
 // Get all drafts
 router.get('/drafts', authenticateToken, requireAdmin, (req, res) => {
-  db.query('SELECT d.*, u.email as userEmail FROM drafts d JOIN users u ON d.user_id = u.id ORDER BY d.created_at DESC', (err, results) => {
-    if (err) return res.status(500).json({ message: 'Database error', error: err });
-    console.log('Drafts fetched:', results.length);
+  console.log('🔍 Admin /drafts endpoint called');
+  db.query('SELECT d.id, d.user_id, d.user_email, d.data, d.created_at, d.share_token, u.email as userEmail, CONCAT("Draft ", d.id) as name FROM drafts d JOIN users u ON d.user_id = u.id LIMIT 50', (err, results) => {
+    if (err) {
+      console.error('❌ Admin drafts query error:', err);
+      return res.status(500).json({ message: 'Database error', error: err });
+    }
+    console.log('✅ Admin drafts fetched:', results.length);
+    console.log('🔍 Draft IDs:', results.map(r => r.id));
     res.json({ drafts: results });
   });
 });
