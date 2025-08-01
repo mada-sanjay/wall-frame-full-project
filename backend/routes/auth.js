@@ -432,7 +432,7 @@ router.delete('/admin/users/:id', authenticateToken, requireAdmin, (req, res) =>
 router.get('/admin/drafts', authenticateToken, requireAdmin, (req, res) => {
   console.log('GET /admin/drafts called');
   db.query(
-    'SELECT d.id, d.name, u.email as userEmail, d.data as session_data, d.created_at FROM drafts d JOIN users u ON d.user_id = u.id ORDER BY d.created_at DESC',
+    'SELECT d.id, d.user_email as userEmail, d.data as session_data, d.created_at, CONCAT("Draft ", d.id) as name FROM drafts d ORDER BY d.created_at DESC',
     (err, results) => {
       if (err) {
         console.error('Error fetching drafts:', err);
