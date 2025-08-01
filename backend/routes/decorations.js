@@ -166,8 +166,13 @@ router.get('/decorations/public/:plan', (req, res) => {
   db.query(query, (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     
-    // Return decorations as-is since URLs are already complete
-    res.json({ decorations: results });
+    // Add full server URL to image paths
+    const decorationsWithFullUrls = results.map(decoration => ({
+      ...decoration,
+      image: decoration.image ? `${config.api.baseUrl}${decoration.image}` : null
+    }));
+    
+    res.json({ decorations: decorationsWithFullUrls });
   });
 });
 
@@ -176,8 +181,13 @@ router.get('/decorations/public', (req, res) => {
   db.query('SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     
-    // Return decorations as-is since URLs are already complete
-    res.json({ decorations: results });
+    // Add full server URL to image paths
+    const decorationsWithFullUrls = results.map(decoration => ({
+      ...decoration,
+      image: decoration.image ? `${config.api.baseUrl}${decoration.image}` : null
+    }));
+    
+    res.json({ decorations: decorationsWithFullUrls });
   });
 });
 
