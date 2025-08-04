@@ -25,6 +25,123 @@ function LandingPage() {
 
   return (
     <div style={{ fontFamily: "Segoe UI, Arial, sans-serif", background: isDarkMode ? "#1f2937" : "#fafafd", minHeight: "100vh" }}>
+      {/* Header Navigation */}
+      <header style={{
+        background: isDarkMode ? "#111827" : "#ffffff",
+        padding: "16px 24px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        boxShadow: isDarkMode ? "0 1px 3px rgba(0,0,0,0.3)" : "0 1px 3px rgba(0,0,0,0.1)",
+        position: "sticky",
+        top: 0,
+        zIndex: 100
+      }}>
+        {/* Logo and Brand */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{
+            width: "32px",
+            height: "32px",
+            background: "#3b82f6",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            position: "relative"
+          }}>
+            <div style={{
+              width: "8px",
+              height: "8px",
+              background: "#ffffff",
+              borderRadius: "50%",
+              position: "absolute",
+              top: "6px",
+              left: "6px"
+            }}></div>
+            <div style={{
+              width: "6px",
+              height: "6px",
+              background: "#ffffff",
+              borderRadius: "50%",
+              position: "absolute",
+              top: "8px",
+              right: "8px"
+            }}></div>
+            <div style={{
+              width: "4px",
+              height: "4px",
+              background: "#ffffff",
+              borderRadius: "50%",
+              position: "absolute",
+              bottom: "8px",
+              left: "10px"
+            }}></div>
+          </div>
+          <span style={{
+            fontSize: "24px",
+            fontWeight: "700",
+            color: isDarkMode ? "#f9fafb" : "#1f2937"
+          }}>
+            WallCraft
+          </span>
+        </div>
+
+        {/* Navigation Links */}
+        <nav style={{ display: "flex", alignItems: "center", gap: "32px" }}>
+          <a href="#features" style={{
+            color: isDarkMode ? "#d1d5db" : "#6b7280",
+            textDecoration: "none",
+            fontSize: "16px",
+            fontWeight: "500",
+            transition: "color 0.2s ease"
+          }}>
+            Features
+          </a>
+          <a href="#pricing" style={{
+            color: isDarkMode ? "#d1d5db" : "#6b7280",
+            textDecoration: "none",
+            fontSize: "16px",
+            fontWeight: "500",
+            transition: "color 0.2s ease"
+          }}>
+            Pricing
+          </a>
+          <a href="#how-it-works" style={{
+            color: isDarkMode ? "#d1d5db" : "#6b7280",
+            textDecoration: "none",
+            fontSize: "16px",
+            fontWeight: "500",
+            transition: "color 0.2s ease"
+          }}>
+            How it Works
+          </a>
+          <button onClick={() => navigate("/login")} style={{
+            background: "transparent",
+            color: isDarkMode ? "#d1d5db" : "#6b7280",
+            border: "none",
+            fontSize: "16px",
+            fontWeight: "500",
+            cursor: "pointer",
+            transition: "color 0.2s ease"
+          }}>
+            Login
+          </button>
+          <button onClick={() => navigate("/register")} style={{
+            background: "#3b82f6",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: "8px",
+            padding: "10px 20px",
+            fontSize: "16px",
+            fontWeight: "600",
+            cursor: "pointer",
+            transition: "background-color 0.2s ease"
+          }}>
+            Sign Up
+          </button>
+        </nav>
+      </header>
+
       {/* Dark Mode Toggle Button */}
       <div style={{ 
         position: 'fixed', 
@@ -67,7 +184,7 @@ function LandingPage() {
         <div style={{ background: isDarkMode ? "#374151" : "#fff", color: "#7c3aed", fontWeight: 600, fontSize: 18, borderRadius: 24, boxShadow: isDarkMode ? "0 2px 16px #1f2937" : "0 2px 16px #ede9fe", padding: "10px 32px", marginBottom: 32, display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 22 }}>✨</span> Professional Wall Design Platform
         </div>
-        <h1 style={{ fontSize: 64, fontWeight: 900, color: isDarkMode ? "#f9fafb" : "#232946", margin: 0, textAlign: 'center', letterSpacing: 1 }}>Design Your<br /><span style={{ color: "#a78bfa" }}>Perfect Wall</span></h1>
+        <h1 style={{ fontSize: 64, fontWeight: 900, color: isDarkMode ? "#f9fafb" : "#232946", margin: 0, textAlign: 'center', letterSpacing: 1 }}>Powerful Features for<br /><span style={{ color: "#a78bfa" }}>Perfect Designs</span></h1>
         <div style={{ fontSize: 22, color: isDarkMode ? "#d1d5db" : "#6b7280", margin: "32px 0 40px 0", textAlign: 'center', maxWidth: 700 }}>
           Complete wall design platform with user authentication, subscription plans, draft management, and professional tools. From concept to creation with enterprise-grade features.
         </div>
