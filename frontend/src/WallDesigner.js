@@ -65,6 +65,41 @@ function getFrameStyle(frame, thickness = 4, color = '#333') {
 }
 
 function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
+  const navigate = useNavigate();
+  
+  // Authentication check
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('No token found, redirecting to login');
+      navigate('/login');
+      return;
+    }
+    
+    // Optional: Verify token is valid by making a test API call
+    const verifyToken = async () => {
+      try {
+        const response = await fetch(`${getApiUrl()}/verify-token`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          console.log('Invalid token, redirecting to login');
+          localStorage.removeItem('token');
+          navigate('/login');
+        }
+      } catch (error) {
+        console.log('Token verification failed, redirecting to login');
+        localStorage.removeItem('token');
+        navigate('/login');
+      }
+    };
+    
+    verifyToken();
+  }, [navigate]);
+
   const [wallSize, setWallSize] = useState({ width: 500, height: 300 });
   const [prevWallSize, setPrevWallSize] = useState({ width: 500, height: 300 });
   const [wallImage, setWallImage] = useState(null);
@@ -166,8 +201,6 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareType, setShareType] = useState('view');
   const [generatedLink, setGeneratedLink] = useState('');
-
-  const navigate = useNavigate();
 
   // Redirect to /login if not authenticated
   useEffect(() => {

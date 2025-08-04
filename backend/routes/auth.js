@@ -990,6 +990,27 @@ router.get('/admin/user-emails', (req, res) => {
   );
 });
 
+// Verify token endpoint
+router.get('/verify-token', authenticateToken, (req, res) => {
+  try {
+    // If we reach here, the token is valid (authenticateToken middleware passed)
+    res.json({ 
+      valid: true, 
+      user: {
+        id: req.user.id,
+        email: req.user.email,
+        isAdmin: req.user.isAdmin,
+        plan: req.user.plan
+      }
+    });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(401).json({ valid: false, message: 'Invalid token' });
+  }
+});
+
+// Get user sessions (drafts)
+
 
 
 
