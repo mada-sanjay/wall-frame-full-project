@@ -1,7 +1,7 @@
 const config = {
   // API Configuration
   api: {
-    baseUrl: 'https://wall-frame-full-project.onrender.com',
+    baseUrl: 'http://your-ec2-backend-ip', // Replace with your EC2 backend IP
     prefix: '/api'
   },
   
