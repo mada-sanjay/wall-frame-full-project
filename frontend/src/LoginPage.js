@@ -40,7 +40,7 @@ function LoginPage({ onLogin }) {
         if (redirect) {
           navigate(redirect, { replace: true });
         } else {
-          navigate("/landing", { replace: true });
+          navigate("/walldesigner", { replace: true });
         }
       } else {
         setError(data.message || "Login failed");

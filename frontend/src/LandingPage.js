@@ -29,8 +29,8 @@ function LandingPage() {
     if (token) {
       navigate("/walldesigner");
     } else {
-      // Show login prompt or navigate to login
-      navigate("/login");
+      // Show login prompt or navigate to login with redirect parameter
+      navigate("/login?redirect=/walldesigner");
     }
   };
 
