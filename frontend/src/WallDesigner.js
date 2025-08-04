@@ -78,33 +78,15 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       return;
     }
     
-    // Optional: Verify token is valid by making a test API call
-    const verifyToken = async () => {
-      try {
-        console.log('🔍 Verifying token with backend...');
-        const response = await fetch(`${getApiUrl()}/verify-token`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        console.log('🔍 Token verification response:', response.status);
-        
-        if (!response.ok) {
-          console.log('❌ Invalid token, redirecting to login');
-          localStorage.removeItem('token');
-          navigate('/login');
-        } else {
-          console.log('✅ Token verified successfully');
-        }
-      } catch (error) {
-        console.log('❌ Token verification failed:', error);
-        localStorage.removeItem('token');
-        navigate('/login');
-      }
-    };
-    
-    verifyToken();
+    // Simple token check - just verify it exists and has a valid format
+    // Don't make an API call that could fail and cause login loops
+    if (token && token.length > 10) {
+      console.log('✅ Token exists and looks valid, proceeding to designer');
+    } else {
+      console.log('❌ Invalid token format, redirecting to login');
+      localStorage.removeItem('token');
+      navigate('/login');
+    }
   }, [navigate]);
 
   const [wallSize, setWallSize] = useState({ width: 500, height: 300 });

@@ -1,10 +1,7 @@
 const config = {
   // API Configuration
   api: {
-    baseUrl: process.env.REACT_APP_API_BASE_URL || 
-      (process.env.NODE_ENV === 'production' 
-        ? 'https://wall-frame-full-project.onrender.com' 
-        : 'http://localhost:5000'),
+    baseUrl: 'https://wall-frame-full-project.onrender.com',
     prefix: '/api'
   },
   
@@ -52,16 +49,18 @@ const config = {
 export const getApiUrl = (endpoint) => {
   const baseUrl = config.api.baseUrl;
   const prefix = config.api.prefix;
-  console.log('🔍 API Config:', { baseUrl, prefix, endpoint });
-  return `${baseUrl}${prefix}${endpoint}`;
+  const fullUrl = `${baseUrl}${prefix}${endpoint}`;
+  console.log('🔍 API Config:', { baseUrl, prefix, endpoint, fullUrl });
+  return fullUrl;
 };
 
 // Helper function to get admin API URL
 export const getAdminApiUrl = (endpoint) => {
   const baseUrl = config.api.baseUrl;
   const prefix = config.api.prefix;
-  console.log('🔍 Admin API Config:', { baseUrl, prefix, endpoint });
-  return `${baseUrl}${prefix}/admin${endpoint}`;
+  const fullUrl = `${baseUrl}${prefix}/admin${endpoint}`;
+  console.log('🔍 Admin API Config:', { baseUrl, prefix, endpoint, fullUrl });
+  return fullUrl;
 };
 
 export default config; 
