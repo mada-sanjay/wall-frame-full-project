@@ -70,8 +70,10 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   // Authentication check
   useEffect(() => {
     const token = localStorage.getItem('token');
+    console.log('🔍 WallDesigner - Token check:', !!token);
+    
     if (!token) {
-      console.log('No token found, redirecting to login');
+      console.log('❌ No token found, redirecting to login');
       navigate('/login');
       return;
     }
@@ -79,19 +81,24 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
     // Optional: Verify token is valid by making a test API call
     const verifyToken = async () => {
       try {
+        console.log('🔍 Verifying token with backend...');
         const response = await fetch(`${getApiUrl()}/verify-token`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
         
+        console.log('🔍 Token verification response:', response.status);
+        
         if (!response.ok) {
-          console.log('Invalid token, redirecting to login');
+          console.log('❌ Invalid token, redirecting to login');
           localStorage.removeItem('token');
           navigate('/login');
+        } else {
+          console.log('✅ Token verified successfully');
         }
       } catch (error) {
-        console.log('Token verification failed, redirecting to login');
+        console.log('❌ Token verification failed:', error);
         localStorage.removeItem('token');
         navigate('/login');
       }
