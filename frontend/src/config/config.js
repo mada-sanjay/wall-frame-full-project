@@ -50,12 +50,18 @@ const config = {
 
 // Helper function to get full API URL
 export const getApiUrl = (endpoint) => {
-  return `${config.api.baseUrl}${config.api.prefix}${endpoint}`;
+  const baseUrl = config.api.baseUrl;
+  const prefix = config.api.prefix;
+  console.log('🔍 API Config:', { baseUrl, prefix, endpoint });
+  return `${baseUrl}${prefix}${endpoint}`;
 };
 
 // Helper function to get admin API URL
 export const getAdminApiUrl = (endpoint) => {
-  return `${config.api.baseUrl}${config.api.prefix}/admin${endpoint}`;
+  const baseUrl = config.api.baseUrl;
+  const prefix = config.api.prefix;
+  console.log('🔍 Admin API Config:', { baseUrl, prefix, endpoint });
+  return `${baseUrl}${prefix}/admin${endpoint}`;
 };
 
 export default config; 
