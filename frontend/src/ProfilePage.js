@@ -1,4 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { getApiUrl } from "./config/config";
+
+function ProfilePage() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [plan, setPlan] = useState("basic");
@@ -714,6 +720,6 @@ import React, { useState, useEffect } from "react";
       </div>
     </div>
   );
-
+}
 
 export default ProfilePage; 
