@@ -146,7 +146,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         
         // Fetch decorations based on user's subscription plan
         console.log('🎨 Fetching decorations for plan:', userPlan);
-        return fetch(getAdminApiUrl(`/decorations/public/${userPlan}`));
+        return fetch(getApiUrl(`/decorations/public/${userPlan}`));
       })
       .then(res => {
         console.log('📡 Decorations API response status:', res.status);
@@ -176,7 +176,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         console.error('❌ Error fetching decorations:', error);
         // Fallback to basic decorations if plan-based fetch fails
         console.log('🔄 Trying fallback decorations...');
-        fetch(getAdminApiUrl('/decorations/public'))
+        fetch(getApiUrl('/decorations/public'))
           .then(res => res.json())
           .then(data => {
             console.log('📦 Fallback decorations data:', data);
