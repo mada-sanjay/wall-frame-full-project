@@ -213,13 +213,42 @@ function AdminPage() {
 
   // Delete decoration (API)
   const handleDeleteDecoration = (id) => {
-    if (!window.confirm('Delete this decoration?')) return;
+    console.log('🗑️ Attempting to delete decoration with ID:', id);
+    if (!window.confirm('Delete this decoration? This action cannot be undone.')) {
+      console.log('❌ Delete cancelled by user');
+      return;
+    }
+    
     const token = localStorage.getItem('token');
+    console.log('🔑 Token available:', !!token);
+    
     fetch(getAdminApiUrl(`/decorations/${id}`), {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
-      .then(() => setDecorations(prev => prev.filter(d => d.id !== id)));
+      .then(res => {
+        console.log('📡 Delete API response status:', res.status);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('✅ Decoration deleted successfully:', data);
+        setDecorations(prev => prev.filter(d => d.id !== id));
+        console.log('🔄 Updated decorations list, removed decoration with ID:', id);
+        
+        // Show success message
+        if (data.deletedFile) {
+          alert(`Decoration deleted successfully!\nFile removed: ${data.deletedFile}`);
+        } else {
+          alert('Decoration deleted successfully!');
+        }
+      })
+      .catch(error => {
+        console.error('❌ Error deleting decoration:', error);
+        alert('Failed to delete decoration: ' + error.message);
+      });
   };
 
   // Approve pending decoration (API)
@@ -1249,57 +1278,97 @@ function AdminPage() {
                   <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Name</th>
                   <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Category</th>
                   <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Plan</th>
+                  <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Type</th>
                   <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Status</th>
                   <th style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {decorations.filter(dec => dec).map(dec => (
-                  <tr key={dec.id} style={{ 
-                    borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e0e7ef',
-                    background: isDarkMode ? '#1f2937' : 'transparent'
-                  }}>
-                    <td style={{ padding: 10 }}>
-                      {dec.image ? (
-                        <img src={dec.image} alt={dec.name} width={40} />
-                      ) : (
-                        <div style={{ 
-                          width: 40, 
-                          height: 40, 
-                          background: isDarkMode ? '#374151' : '#e2e8f0', 
-                          borderRadius: 4,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: isDarkMode ? '#9ca3af' : '#64748b',
-                          fontSize: '12px'
+                {decorations.filter(dec => dec).map(dec => {
+                  // Determine if this is an uploaded decoration
+                  const isUploaded = dec.image && dec.image.includes('/uploads/');
+                  
+                  return (
+                    <tr key={dec.id} style={{ 
+                      borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e0e7ef',
+                      background: isDarkMode ? '#1f2937' : 'transparent'
+                    }}>
+                      <td style={{ padding: 10 }}>
+                        {dec.image ? (
+                          <img src={dec.image} alt={dec.name} width={40} />
+                        ) : (
+                          <div style={{ 
+                            width: 40, 
+                            height: 40, 
+                            background: isDarkMode ? '#374151' : '#e2e8f0', 
+                            borderRadius: 4,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: isDarkMode ? '#9ca3af' : '#64748b',
+                            fontSize: '12px'
+                          }}>
+                            No Image
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>{dec.name}</td>
+                      <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{dec.category}</td>
+                      <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>
+                        <span style={{
+                          background: dec.subscription_plan === 'basic' ? '#10b981' : 
+                                     dec.subscription_plan === 'pro' ? '#3b82f6' : '#8b5cf6',
+                          color: '#ffffff',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          textTransform: 'uppercase'
                         }}>
-                          No Image
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: 10, color: isDarkMode ? '#f9fafb' : '#333' }}>{dec.name}</td>
-                    <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{dec.category}</td>
-                    <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>
-                      <span style={{
-                        background: dec.subscription_plan === 'basic' ? '#10b981' : 
-                                   dec.subscription_plan === 'pro' ? '#3b82f6' : '#8b5cf6',
-                        color: '#ffffff',
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        textTransform: 'uppercase'
-                      }}>
-                        {dec.subscription_plan || 'basic'}
-                      </span>
-                    </td>
-                    <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{dec.status}</td>
-                    <td style={{ padding: 10 }}>
-                      <button onClick={() => handleDeleteDecoration(dec.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Delete</button>
-                    </td>
-                  </tr>
-                ))}
+                          {dec.subscription_plan || 'basic'}
+                        </span>
+                      </td>
+                      <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>
+                        <span style={{
+                          background: isUploaded ? '#3b82f6' : '#10b981',
+                          color: '#ffffff',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          textTransform: 'uppercase'
+                        }}>
+                          {isUploaded ? '📤 Uploaded' : '📦 Built-in'}
+                        </span>
+                      </td>
+                      <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{dec.status}</td>
+                      <td style={{ padding: 10 }}>
+                        <button 
+                          onClick={() => handleDeleteDecoration(dec.id)} 
+                          style={{ 
+                            padding: '6px 12px', 
+                            borderRadius: 6, 
+                            border: 'none', 
+                            background: '#d32f2f', 
+                            color: '#fff', 
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#b71c1c'}
+                          onMouseLeave={(e) => e.target.style.background = '#d32f2f'}
+                          title={isUploaded ? "Delete this uploaded decoration and remove the file" : "Delete this decoration"}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             <h3 style={{ color: isDarkMode ? '#f9fafb' : '#333' }}>Pending Approval</h3>
@@ -1348,7 +1417,28 @@ function AdminPage() {
                     <td style={{ padding: 10, color: isDarkMode ? '#d1d5db' : '#333' }}>{dec.category}</td>
                     <td style={{ padding: 10 }}>
                       <button onClick={() => handleApproveDecoration(dec)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#388e3c', color: '#fff', cursor: 'pointer', marginRight: 8 }}>Approve</button>
-                      <button onClick={() => handleRejectDecoration(dec.id)} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer' }}>Reject</button>
+                      <button 
+                        onClick={() => handleRejectDecoration(dec.id)} 
+                        style={{ 
+                          padding: '6px 12px', 
+                          borderRadius: 6, 
+                          border: 'none', 
+                          background: '#d32f2f', 
+                          color: '#fff', 
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = '#b71c1c'}
+                        onMouseLeave={(e) => e.target.style.background = '#d32f2f'}
+                        title="Reject and delete this decoration"
+                      >
+                        ❌ Reject
+                      </button>
                     </td>
                   </tr>
                 ))}

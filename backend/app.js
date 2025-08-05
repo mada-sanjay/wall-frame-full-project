@@ -10,18 +10,28 @@ const app = express();
 const corsOptions = {
   origin: function (origin, callback) {
     console.log('🔍 CORS check for origin:', origin);
+    
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
       console.log('✅ Allowing request with no origin');
       return callback(null, true);
     }
-    
-    if (config.cors.allowedOrigins.indexOf(origin) !== -1) {
+
+    // Define allowed origins
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://wall-frame-full-project-frontend.onrender.com',
+      'http://13.203.67.147',  // Your frontend URL
+      'https://13.203.67.147'  // HTTPS version
+    ];
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
       console.log('✅ Allowing origin:', origin);
       callback(null, true);
     } else {
       console.log('❌ Blocking origin:', origin);
-      console.log('🔍 Allowed origins:', config.cors.allowedOrigins);
+      console.log('🔍 Allowed origins:', allowedOrigins);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -60,7 +70,7 @@ app.get('/debug-env', (req, res) => {
 app.get('/debug-auth', (req, res) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  
+
   res.status(200).json({
     hasAuthHeader: !!authHeader,
     hasToken: !!token,
@@ -78,10 +88,10 @@ app.get('/test-db', async (req, res) => {
         console.error('Database test failed:', err);
         res.status(500).json({ error: 'Database connection failed', details: err.message });
       } else {
-        res.status(200).json({ 
-          status: 'Database connected', 
+        res.status(200).json({
+          status: 'Database connected',
           test: results[0].test,
-          timestamp: new Date().toISOString() 
+          timestamp: new Date().toISOString()
         });
       }
     });
@@ -97,8 +107,10 @@ const db = require('./db');
 const authRoutes = require('./routes/auth');
 const decorationRoutes = require('./routes/decorations');
 const adminRoutes = require('./routes/admin');
+
+// Use routes
 app.use(config.api.prefix, authRoutes);
-app.use(`${config.api.prefix}/admin`, decorationRoutes);
+app.use(`${config.api.prefix}/decorations`, decorationRoutes);
 app.use(`${config.api.prefix}/admin`, adminRoutes);
 
 // API-only backend - frontend is served separately
@@ -107,8 +119,8 @@ app.use(`${config.api.prefix}/admin`, adminRoutes);
 app.listen(config.port, async () => {
   console.log(`🚀 Backend running on port ${config.port}`);
   console.log(`🌍 Environment: ${config.nodeEnv}`);
-  console.log(`🔗 CORS Origins: ${config.cors.allowedOrigins.join(', ')}`);
-  
+  console.log(`🔗 CORS Origins: http://localhost:3000, http://localhost:3001, https://wall-frame-full-project-frontend.onrender.com, http://13.203.67.147, https://13.203.67.147`);
+
   // Auto-setup database on startup
   await autoSetupDatabase();
 }); 

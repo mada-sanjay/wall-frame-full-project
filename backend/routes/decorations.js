@@ -1,20 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
-const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
+const db = require('../db');
 const config = require('../config/config');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '..', config.upload.uploadPath);
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
+    cb(null, path.join(__dirname, 'public/uploads'));
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -34,6 +30,7 @@ const upload = multer({
   }
 });
 
+// Middleware functions
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -92,24 +89,18 @@ router.get('/decorations/pending', authenticateToken, requireAdmin, (req, res) =
 router.post('/decorations', authenticateToken, requireAdmin, (req, res) => {
   const { name, category, image, subscription_plan = 'basic' } = req.body;
   if (!name || !category || !image) {
-    return res.status(400).json({ message: 'Missing fields' });
+    return res.status(400).json({ message: 'Name, category, and image are required' });
   }
   
-  // Validate subscription plan
-  const validPlans = ['basic', 'pro', 'pro_max'];
-  if (!validPlans.includes(subscription_plan)) {
-    return res.status(400).json({ message: 'Invalid subscription plan' });
-  }
-  
-  db.query('INSERT INTO decorations (name, category, image, status, subscription_plan) VALUES (?, ?, ?, "Active", ?)',
+  db.query(
+    'INSERT INTO decorations (name, category, image, subscription_plan, status) VALUES (?, ?, ?, ?, "Active")',
     [name, category, image, subscription_plan],
     (err, results) => {
-      if (err) {
-        console.error('Error adding decoration:', err);
-        return res.status(500).json({ message: 'Database error', error: err.message });
-      }
+      if (err) return res.status(500).json({ message: 'Database error', error: err });
+      
+      // Get the newly created decoration
       db.query('SELECT * FROM decorations WHERE id = ?', [results.insertId], (err2, rows) => {
-        if (err2 || !rows.length) return res.json({ message: 'Decoration added' });
+        if (err2 || !rows.length) return res.status(500).json({ message: 'Failed to retrieve created decoration' });
         
         // Fix image URL - handle both full URLs and relative paths
         const decorationWithFixedUrl = {
@@ -125,11 +116,47 @@ router.post('/decorations', authenticateToken, requireAdmin, (req, res) => {
   );
 });
 
-// Delete decoration
+// Delete decoration with file cleanup
 router.delete('/decorations/:id', authenticateToken, requireAdmin, (req, res) => {
-  db.query('DELETE FROM decorations WHERE id = ?', [req.params.id], (err, results) => {
+  const decorationId = req.params.id;
+  
+  // First, get the decoration to find the image file
+  db.query('SELECT * FROM decorations WHERE id = ?', [decorationId], (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
-    res.json({ message: 'Decoration deleted' });
+    
+    if (results.length === 0) {
+      return res.status(404).json({ message: 'Decoration not found' });
+    }
+    
+    const decoration = results[0];
+    const imagePath = decoration.image;
+    
+    // Delete from database first
+    db.query('DELETE FROM decorations WHERE id = ?', [decorationId], (err2, results2) => {
+      if (err2) return res.status(500).json({ message: 'Database error', error: err2 });
+      
+      // If the decoration has an uploaded image file, delete it from the server
+      if (imagePath && imagePath.startsWith('/uploads/')) {
+        const filePath = path.join(__dirname, 'public', imagePath);
+        
+        // Check if file exists and delete it
+        if (fs.existsSync(filePath)) {
+          fs.unlink(filePath, (err3) => {
+            if (err3) {
+              console.error('Error deleting file:', err3);
+              // Don't fail the request if file deletion fails
+            } else {
+              console.log('✅ Uploaded file deleted:', filePath);
+            }
+          });
+        }
+      }
+      
+      res.json({ 
+        message: 'Decoration deleted successfully',
+        deletedFile: imagePath && imagePath.startsWith('/uploads/') ? imagePath : null
+      });
+    });
   });
 });
 

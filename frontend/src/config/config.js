@@ -1,7 +1,7 @@
 const config = {
   // API Configuration
   api: {
-    baseUrl: 'http://your-ec2-backend-ip', // Replace with your EC2 backend IP
+    baseUrl: 'http://13.203.67.147',
     prefix: '/api'
   },
   

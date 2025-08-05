@@ -131,10 +131,13 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   useEffect(() => {
     // Fetch user plan first, then fetch decorations based on plan
     const token = localStorage.getItem("token");
-          fetch(getApiUrl("/me"), { headers: { Authorization: `Bearer ${token}` } })
+    console.log('🔍 Fetching user plan and decorations...');
+    
+    fetch(getApiUrl("/me"), { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => {
         const userPlan = data.user?.plan || "basic";
+        console.log('👤 User plan:', userPlan);
         setPlan(userPlan);
         let limit = 3;
         if (userPlan === "pro") limit = 6;
@@ -142,40 +145,70 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         setDraftLimit(limit);
         
         // Fetch decorations based on user's subscription plan
+        console.log('🎨 Fetching decorations for plan:', userPlan);
         return fetch(getAdminApiUrl(`/decorations/public/${userPlan}`));
       })
-      .then(res => res.json())
+      .then(res => {
+        console.log('📡 Decorations API response status:', res.status);
+        return res.json();
+      })
       .then(data => {
+        console.log('📦 Decorations data received:', data);
         const dbDecorations = (data.decorations || []).map(d => ({ name: d.name, url: d.image }));
+        console.log('🖼️ Database decorations:', dbDecorations);
+        
         const hardcoded = [
-    { name: 'frame', url: '/frame_1.png' },
-    { name: 'chair', url: '/chair.png' },
-    { name: 'garland', url: '/garland-removebg-preview.png' },
-    { name: 'garland', url: '/one.png' },
-    { name: 'Image', url: '/two.png' },
-    { name: 'garland', url: '/three.png' }, 
+          { name: 'frame', url: '/frame_1.png' },
+          { name: 'chair', url: '/chair.png' },
+          { name: 'garland', url: '/garland-removebg-preview.png' },
+          { name: 'garland', url: '/one.png' },
+          { name: 'Image', url: '/two.png' },
+          { name: 'garland', url: '/three.png' }, 
           { name: 'flower', url: '/flower-removebg-preview.png' },
         ];
-        setDecorations([...dbDecorations, ...hardcoded]);
+        console.log('🖼️ Hardcoded decorations:', hardcoded);
+        
+        const allDecorations = [...dbDecorations, ...hardcoded];
+        console.log('🎯 Total decorations to set:', allDecorations.length);
+        setDecorations(allDecorations);
       })
       .catch(error => {
-        console.error('Error fetching decorations:', error);
+        console.error('❌ Error fetching decorations:', error);
         // Fallback to basic decorations if plan-based fetch fails
+        console.log('🔄 Trying fallback decorations...');
         fetch(getAdminApiUrl('/decorations/public'))
           .then(res => res.json())
           .then(data => {
+            console.log('📦 Fallback decorations data:', data);
             const dbDecorations = (data.decorations || []).map(d => ({ name: d.name, url: d.image }));
             const hardcoded = [
-      { name: 'frame', url: '/frame_1.png' },
-      { name: 'chair', url: '/chair.png' },
-      { name: 'garland', url: '/garland-removebg-preview.png' },
-      { name: 'garland', url: '/one.png' },
-      { name: 'Image', url: '/two.png' },
-      { name: 'garland', url: '/three.png' }, 
-            { name: 'flower', url: '/flower-removebg-preview.png' },
-          ];
-          setDecorations([...dbDecorations, ...hardcoded]);
-        });
+              { name: 'frame', url: '/frame_1.png' },
+              { name: 'chair', url: '/chair.png' },
+              { name: 'garland', url: '/garland-removebg-preview.png' },
+              { name: 'garland', url: '/one.png' },
+              { name: 'Image', url: '/two.png' },
+              { name: 'garland', url: '/three.png' }, 
+              { name: 'flower', url: '/flower-removebg-preview.png' },
+            ];
+            const allDecorations = [...dbDecorations, ...hardcoded];
+            console.log('🎯 Fallback total decorations:', allDecorations.length);
+            setDecorations(allDecorations);
+          })
+          .catch(fallbackError => {
+            console.error('❌ Fallback also failed:', fallbackError);
+            // Set at least hardcoded decorations
+            const hardcoded = [
+              { name: 'frame', url: '/frame_1.png' },
+              { name: 'chair', url: '/chair.png' },
+              { name: 'garland', url: '/garland-removebg-preview.png' },
+              { name: 'garland', url: '/one.png' },
+              { name: 'Image', url: '/two.png' },
+              { name: 'garland', url: '/three.png' }, 
+              { name: 'flower', url: '/flower-removebg-preview.png' },
+            ];
+            console.log('🛡️ Setting hardcoded decorations only:', hardcoded.length);
+            setDecorations(hardcoded);
+          });
       });
     // Fetch plan and draft count from backend (already handled above)
     const user_email = localStorage.getItem("userEmail");
@@ -307,7 +340,12 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           }
         }
         // Set share token if available
-        if (data.share_token) setShareToken(data.share_token);
+        if (data.share_token) {
+          console.log('🔑 Received share token from server:', data.share_token);
+          setShareToken(data.share_token);
+        } else {
+          console.log('⚠️ No share token received from server');
+        }
         // Refresh the drafts list
         fetchDrafts();
         // Update draft count after save
@@ -351,6 +389,9 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
 
   const loadDraft = (session) => {
     try {
+      console.log('📥 Loading draft:', session);
+      console.log('🔑 Session share token:', session.share_token);
+      
       const data = typeof session.session_data === 'string' ? JSON.parse(session.session_data) : session.session_data;
       
       if (data.wallSize) setWallSize(data.wallSize);
@@ -363,9 +404,14 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       setShareToken(session.share_token || null); // <-- ensure shareToken is set when loading a draft
       setGeneratedLink(''); // Reset generatedLink when loading a draft
       
+      console.log('✅ Draft loaded successfully');
+      console.log('🆔 Set current draft ID:', session.id);
+      console.log('🔑 Set share token:', session.share_token);
+      
       setShowDrafts(false);
       alert("Draft loaded successfully!");
     } catch (err) {
+      console.error('❌ Error loading draft:', err);
       alert("Failed to load draft. Check console for details.");
     }
   };
@@ -576,6 +622,10 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
 
   // Share handler
   const handleShare = () => {
+    console.log('🔗 Share button clicked');
+    console.log('🔑 Current share token:', shareToken);
+    console.log('🆔 Current draft ID:', currentDraftId);
+    
     if (!shareToken && !currentDraftId) {
       alert('Please save your draft first!');
       return;
@@ -584,27 +634,95 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
     setShareType('view');
     setGeneratedLink('');
   };
+
   const handleGenerateLink = () => {
-    if (!shareToken) return;
+    console.log('🔗 Generate link clicked');
+    console.log('🔑 Share token:', shareToken);
+    console.log('📋 Share type:', shareType);
+    
+    if (!shareToken) {
+      console.log('❌ No share token available');
+      alert('No share token available. Please save your draft first.');
+      return;
+    }
+    
     const url = shareType === 'view'
       ? `${window.location.origin}/view/${shareToken}`
       : `${window.location.origin}/shared/${shareToken}`;
+    
+    console.log('🔗 Generated URL:', url);
     setGeneratedLink(url);
   };
   const handleCopyLink = () => {
     if (generatedLink) {
-      navigator.clipboard.writeText(generatedLink);
-      setShowShareModal(false);
+      // Check if clipboard API is available
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(generatedLink)
+          .then(() => {
+            alert('Link copied to clipboard!');
+            setShowShareModal(false);
+          })
+          .catch(err => {
+            console.error('Clipboard API failed:', err);
+            // Fallback: use document.execCommand
+            fallbackCopyToClipboard(generatedLink);
+          });
+      } else {
+        // Fallback for older browsers
+        fallbackCopyToClipboard(generatedLink);
+      }
     }
   };
+
   const handleCopyShareLink = (type) => {
     if (!shareToken) return;
     const url = type === 'view'
       ? `${window.location.origin}/view/${shareToken}`
       : `${window.location.origin}/shared/${shareToken}`;
-    navigator.clipboard.writeText(url);
-    alert(`${type === 'view' ? 'View-only' : 'Editable'} link copied to clipboard!\n\n${url}`);
-    setShowShareModal(false);
+    
+    // Check if clipboard API is available
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          alert(`${type === 'view' ? 'View-only' : 'Editable'} link copied to clipboard!\n\n${url}`);
+          setShowShareModal(false);
+        })
+        .catch(err => {
+          console.error('Clipboard API failed:', err);
+          // Fallback: use document.execCommand
+          fallbackCopyToClipboard(url);
+        });
+    } else {
+      // Fallback for older browsers
+      fallbackCopyToClipboard(url);
+    }
+  };
+
+  // Fallback copy function for older browsers
+  const fallbackCopyToClipboard = (text) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        alert('Link copied to clipboard!');
+        setShowShareModal(false);
+      } else {
+        alert('Failed to copy link. Please copy manually:\n' + text);
+      }
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+      alert('Failed to copy link. Please copy manually:\n' + text);
+    }
+    
+    document.body.removeChild(textArea);
   };
 
   return (

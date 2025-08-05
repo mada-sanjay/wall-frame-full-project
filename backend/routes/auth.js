@@ -586,18 +586,21 @@ router.get('/debug/user-drafts', authenticateToken, (req, res) => {
 router.get('/shared/:token', (req, res) => {
   const token = req.params.token;
   console.log('GET /shared/:token called with token:', token);
+  
+  // Query by share_token instead of draft ID
   db.query(
-    'SELECT d.*, u.email as user_email FROM drafts d JOIN users u ON d.user_id = u.id WHERE d.id = ?',
-    [token.replace('share_', '')],
+    'SELECT d.*, u.email as user_email FROM drafts d JOIN users u ON d.user_id = u.id WHERE d.share_token = ?',
+    [token],
     (err, results) => {
       if (err) {
         console.error('Error fetching shared design:', err);
         return res.status(500).json({ error: "Error fetching design" });
       }
       if (!results.length) {
+        console.log('No shared design found for token:', token);
         return res.status(404).json({ error: "Design not found" });
       }
-      console.log('Shared design found:', results[0].id);
+      console.log('Shared design found:', results[0].id, 'for token:', token);
       res.status(200).json(results[0]);
     }
   );
