@@ -259,9 +259,9 @@ function LandingPage() {
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>{feature.icon}</div>
                 <h3 style={{ fontSize: '24px', fontWeight: '700', color: isDarkMode ? '#f9fafb' : '#232946', marginBottom: '12px' }}>{feature.title}</h3>
                 <p style={{ color: isDarkMode ? '#d1d5db' : '#6b7280', fontSize: '16px', lineHeight: '1.6' }}>{feature.desc}</p>
-              </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
         </div>
       </section>
 
@@ -300,7 +300,7 @@ function LandingPage() {
                     fontWeight: '600'
                   }}>
                     Most Popular
-                  </div>
+        </div>
                 )}
                 <h3 style={{ fontSize: '28px', fontWeight: '700', color: isDarkMode ? '#f9fafb' : '#232946', marginBottom: '8px' }}>{plan.name}</h3>
                 <div style={{ fontSize: '48px', fontWeight: '900', color: '#3b82f6', marginBottom: '24px' }}>{plan.price}</div>
@@ -319,7 +319,7 @@ function LandingPage() {
                       {feature}
                     </li>
                   ))}
-                </ul>
+              </ul>
                 <button style={{
                   background: index === 1 ? '#3b82f6' : 'transparent',
                   color: index === 1 ? '#ffffff' : '#3b82f6',
@@ -334,8 +334,8 @@ function LandingPage() {
                 }}>
                   {index === 0 ? 'Get Started' : 'Choose Plan'}
                 </button>
-              </div>
-            ))}
+            </div>
+          ))}
           </div>
         </div>
       </section>
@@ -368,11 +368,11 @@ function LandingPage() {
                   margin: '0 auto 24px'
                 }}>
                   {item.step}
-                </div>
+        </div>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>{item.icon}</div>
                 <h3 style={{ fontSize: '24px', fontWeight: '700', color: isDarkMode ? '#f9fafb' : '#232946', marginBottom: '12px' }}>{item.title}</h3>
                 <p style={{ color: isDarkMode ? '#d1d5db' : '#6b7280', fontSize: '16px', lineHeight: '1.6' }}>{item.desc}</p>
-              </div>
+            </div>
             ))}
           </div>
         </div>

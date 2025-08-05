@@ -1,0 +1,44 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.9.2
+1 info using npm@10.9.2
+2 info using node@v22.17.0
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+2 info using node@v22.17.0
+4 silly config load:file:c:\Users\kolag\Downloads\wall-frame-full-project\frontend\.npmrc
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+5 silly config load:file:C:\Users\kolag\.npmrc
+4 silly config load:file:c:\Users\kolag\Downloads\wall-frame-full-project\frontend\.npmrc
+5 silly config load:file:C:\Users\kolag\.npmrc
+6 silly config load:file:C:\Users\kolag\AppData\Roaming\npm\etc\npmrc
+6 silly config load:file:C:\Users\kolag\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm view react-easy-crop description dist-tags.latest homepage version time
+7 verbose title npm view react-dom description dist-tags.latest homepage version time
+8 verbose argv "view" "--json" "--" "react-easy-crop" "description" "dist-tags.latest" "homepage" "version" "time"
+8 verbose argv "view" "--json" "--" "react-dom" "description" "dist-tags.latest" "homepage" "version" "time"
+9 verbose logfile logs-max:10 dir:c:\Users\kolag\Downloads\wall-frame-full-project\frontend\.npm-cache\_logs\2025-08-05T09_46_44_973Z-
+9 verbose logfile logs-max:10 dir:c:\Users\kolag\Downloads\wall-frame-full-project\frontend\.npm-cache\_logs\2025-08-05T09_46_44_973Z-
+10 verbose logfile c:\Users\kolag\Downloads\wall-frame-full-project\frontend\.npm-cache\_logs\2025-08-05T09_46_44_973Z-debug-0.log
+10 verbose logfile c:\Users\kolag\Downloads\wall-frame-full-project\frontend\.npm-cache\_logs\2025-08-05T09_46_44_973Z-debug-0.log
+11 silly logfile done cleaning log files
+11 silly logfile done cleaning log files
+12 http fetch GET 200 https://registry.npmjs.org/npm 258ms
+12 http fetch GET 200 https://registry.npmjs.org/react-easy-crop 195ms (cache miss)
+13 verbose cwd c:\Users\kolag\Downloads\wall-frame-full-project\frontend
+14 verbose os Windows_NT 10.0.26100
+15 verbose node v22.17.0
+16 verbose npm  v10.9.2
+17 verbose exit 0
+18 info ok
+13 http fetch GET 200 https://registry.npmjs.org/react-dom 289ms (cache miss)
+14 verbose cwd c:\Users\kolag\Downloads\wall-frame-full-project\frontend
+15 verbose os Windows_NT 10.0.26100
+16 verbose node v22.17.0
+17 verbose npm  v10.9.2
+18 notice
+18 notice New major version of npm available! 10.9.2 -> 11.5.2
+18 notice Changelog: https://github.com/npm/cli/releases/tag/v11.5.2
+18 notice To update run: npm install -g npm@11.5.2
+18 notice  { force: true, [Symbol(proc-log.meta)]: true }
+19 verbose exit 0
+20 info ok
