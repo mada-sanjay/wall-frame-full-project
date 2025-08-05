@@ -146,7 +146,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         
         // Fetch decorations based on user's subscription plan
         console.log('🎨 Fetching decorations for plan:', userPlan);
-        return fetch(getApiUrl(`/decorations/public/${userPlan}`));
+        return fetch(getApiUrl('/decorations/public'));
       })
       .then(res => {
         console.log('📡 Decorations API response status:', res.status);
