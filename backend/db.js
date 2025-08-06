@@ -9,27 +9,28 @@ console.log('Database:', config.database.database);
 console.log('Port:', config.database.port);
 console.log('Password:', config.database.password ? '[SET]' : '[NOT SET]');
 
-// Create connection with AWS RDS optimized configuration
-const db = mysql.createConnection({
+// Create a connection pool for better reliability
+const pool = mysql.createPool({
   host: config.database.host,
   user: config.database.user,
   password: config.database.password,
   database: config.database.database,
   port: config.database.port,
-  // AWS RDS specific settings
   ssl: {
     rejectUnauthorized: false
   },
-  // Connection timeout settings
   connectTimeout: 60000,
-  // Additional settings for stability
   charset: 'utf8mb4',
-  multipleStatements: false
+  multipleStatements: false,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
-db.connect((err) => {
+// Test the pool connection
+pool.getConnection((err, connection) => {
   if (err) {
-    console.error('❌ Error connecting to MySQL RDS:', err);
+    console.error('❌ Error connecting to MySQL RDS (pool):', err);
     console.error('Error Code:', err.code);
     console.error('Error Number:', err.errno);
     console.error('SQL State:', err.sqlState);
@@ -39,26 +40,10 @@ db.connect((err) => {
     console.error('3. Check VPC and subnet configurations');
     console.error('4. Verify database credentials');
     console.error('5. Check if RDS instance is running');
-    // Don't exit - let the app continue and try auto-setup
   } else {
-    console.log('✅ Connected to AWS RDS MySQL successfully!');
+    console.log('✅ Connected to AWS RDS MySQL successfully (pool)!');
+    connection.release();
   }
 });
 
-// Handle connection errors
-db.on('error', (err) => {
-  console.error('Database connection error:', err);
-  if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-    console.error('Database connection was lost. Reconnecting...');
-  } else if (err.code === 'ER_ACCESS_DENIED_ERROR') {
-    console.error('Access denied. Please check your username and password.');
-  } else if (err.code === 'ECONNREFUSED') {
-    console.error('Connection refused. Check Security Group and network settings.');
-  } else if (err.code === 'ENOTFOUND') {
-    console.error('Host not found. Check your DB_HOST setting.');
-  } else if (err.code === 'ETIMEDOUT') {
-    console.error('Connection timeout. Check Security Group allows Render IPs.');
-  }
-});
-
-module.exports = db; 
+module.exports = pool; 
