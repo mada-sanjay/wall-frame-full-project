@@ -204,7 +204,7 @@ router.post('/upload-image', authenticateToken, requireAdmin, upload.single('ima
 });
 
 // Public: List decorations by subscription plan
-router.get('/decorations/public/:plan', (req, res) => {
+router.get('/public/:plan', (req, res) => {
   const { plan } = req.params;
   const validPlans = ['basic', 'pro', 'pro_max'];
   
@@ -243,7 +243,7 @@ router.get('/decorations/public/:plan', (req, res) => {
 });
 
 // Public: List all active decorations for users
-router.get('/decorations/public', (req, res) => {
+router.get('/public', (req, res) => {
   // Default to basic decorations for backward compatibility
   db.query('SELECT * FROM decorations WHERE status = "Active" AND subscription_plan = "basic" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
