@@ -132,7 +132,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
     // Fetch user plan first, then fetch decorations based on plan
     const token = localStorage.getItem("token");
     console.log('🔍 Fetching user plan and decorations...');
-    
+
     fetch(getApiUrl("/me"), { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => {
@@ -143,10 +143,10 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         if (userPlan === "pro") limit = 6;
         if (userPlan === "pro_max") limit = Infinity;
         setDraftLimit(limit);
-        
+
         // Fetch decorations based on user's subscription plan
         console.log('🎨 Fetching decorations for plan:', userPlan);
-        return fetch(getApiUrl('/decorations/public'));
+        return fetch(getApiUrl(`/decorations/public/${userPlan}`));
       })
       .then(res => {
         console.log('📡 Decorations API response status:', res.status);
@@ -156,18 +156,18 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         console.log('📦 Decorations data received:', data);
         const dbDecorations = (data.decorations || []).map(d => ({ name: d.name, url: d.image }));
         console.log('🖼️ Database decorations:', dbDecorations);
-        
+
         const hardcoded = [
           { name: 'frame', url: '/frame_1.png' },
           { name: 'chair', url: '/chair.png' },
           { name: 'garland', url: '/garland-removebg-preview.png' },
           { name: 'garland', url: '/one.png' },
           { name: 'Image', url: '/two.png' },
-          { name: 'garland', url: '/three.png' }, 
+          { name: 'garland', url: '/three.png' },
           { name: 'flower', url: '/flower-removebg-preview.png' },
         ];
         console.log('🖼️ Hardcoded decorations:', hardcoded);
-        
+
         const allDecorations = [...dbDecorations, ...hardcoded];
         console.log('🎯 Total decorations to set:', allDecorations.length);
         setDecorations(allDecorations);
@@ -176,7 +176,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         console.error('❌ Error fetching decorations:', error);
         // Fallback to basic decorations if plan-based fetch fails
         console.log('🔄 Trying fallback decorations...');
-        fetch(getApiUrl('/decorations/public'))
+        fetch(getApiUrl('/decorations/public/basic'))
           .then(res => res.json())
           .then(data => {
             console.log('📦 Fallback decorations data:', data);
@@ -187,7 +187,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
               { name: 'garland', url: '/garland-removebg-preview.png' },
               { name: 'garland', url: '/one.png' },
               { name: 'Image', url: '/two.png' },
-              { name: 'garland', url: '/three.png' }, 
+              { name: 'garland', url: '/three.png' },
               { name: 'flower', url: '/flower-removebg-preview.png' },
             ];
             const allDecorations = [...dbDecorations, ...hardcoded];
@@ -203,7 +203,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
               { name: 'garland', url: '/garland-removebg-preview.png' },
               { name: 'garland', url: '/one.png' },
               { name: 'Image', url: '/two.png' },
-              { name: 'garland', url: '/three.png' }, 
+              { name: 'garland', url: '/three.png' },
               { name: 'flower', url: '/flower-removebg-preview.png' },
             ];
             console.log('🛡️ Setting hardcoded decorations only:', hardcoded.length);
