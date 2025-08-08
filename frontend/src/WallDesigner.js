@@ -111,7 +111,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
     '/wall1.jpeg',
     '/sanj.jpg',
     '/page.avif',
-    '/raj.webp',
+    
     
     
     
@@ -157,6 +157,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         const dbDecorations = (data.decorations || []).map(d => ({ name: d.name, url: d.image }));
         console.log('🖼️ Database decorations:', dbDecorations);
 
+        // Always show these default decorations
         const hardcoded = [
           { name: 'frame', url: '/frame_1.png' },
           { name: 'chair', url: '/chair.png' },
@@ -168,8 +169,11 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         ];
         console.log('🖼️ Hardcoded decorations:', hardcoded);
 
-        const allDecorations = [...dbDecorations, ...hardcoded];
-        console.log('🎯 Total decorations to set:', allDecorations.length);
+        // Merge and deduplicate by image URL
+        const allDecorations = [...dbDecorations, ...hardcoded].filter((item, idx, arr) =>
+          arr.findIndex(d => d.url === item.url) === idx
+        );
+        console.log('🎯 Total decorations to set (with defaults always present):', allDecorations.length);
         setDecorations(allDecorations);
       })
       .catch(error => {
@@ -797,7 +801,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                     <label htmlFor="canvas-height">Height</label>
                     <input id="canvas-height" type="number" name="height" value={inputHeight} min={100} max={2000} onChange={handleInputChange} />
                   </div>
-                  <button className="action-btn" style={{ minWidth: 60, padding: '8px 11px' }} onClick={handleSetWallSize}>Set</button>
+                  <button className="action-btn reset-save-btn" style={{ minWidth: 60, padding: '8px 11px' }} onClick={handleSetWallSize}>Set</button>
                 </div>
               </div>
               <div className="section-card">
@@ -1020,6 +1024,34 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                       }}
                       onClick={() => setSelectedImageId(img.id)}
                     />
+                    {/* Delete button overlay */}
+                    <button
+                      className="delete-btn"
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        zIndex: 10,
+                        background: '#ff4444',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: 24,
+                        height: 24,
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        fontSize: 16,
+                        lineHeight: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)'
+                      }}
+                      title="Delete image"
+                      onClick={() => deleteImage(img.id)}
+                    >
+                      ×
+                    </button>
                   </div>
                 </Rnd>
               ))}

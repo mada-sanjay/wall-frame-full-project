@@ -160,7 +160,7 @@ function AdminPage() {
     formData.append('image', file);
     
     const token = localStorage.getItem('token');
-    const response = await fetch(getAdminApiUrl('/upload-image'), {
+    const response = await fetch(getApiUrl('/upload-image'), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: formData
