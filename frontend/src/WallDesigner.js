@@ -110,7 +110,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
     '/pexels-maksgelatin-4352247.jpg',
     '/wall1.jpeg',
     '/sanj.jpg',
-    '/page.avif',
+    
     
     
     
