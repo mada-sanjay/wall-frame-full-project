@@ -203,60 +203,62 @@ router.post('/upload-image', authenticateToken, requireAdmin, upload.single('ima
   }
 });
 
-// Public: List decorations by subscription plan
-router.get('/public/:plan', (req, res) => {
+// Public: List decorations by subscription plan (Base64 image if local file)
+const mime = require('mime-types');
+router.get('/public/:plan', async (req, res) => {
   const { plan } = req.params;
   const validPlans = ['basic', 'pro', 'pro_max'];
-  
   if (!validPlans.includes(plan)) {
     return res.status(400).json({ message: 'Invalid subscription plan' });
   }
-  
-  // Filter decorations by subscription plan
   let query;
   let params = [];
-  
   if (plan === 'basic') {
-    // Basic users get only basic decorations
     query = 'SELECT * FROM decorations WHERE status = "Active" AND subscription_plan = "basic" ORDER BY id DESC';
   } else if (plan === 'pro') {
-    // Pro users get basic and pro decorations
     query = 'SELECT * FROM decorations WHERE status = "Active" AND (subscription_plan = "basic" OR subscription_plan = "pro") ORDER BY id DESC';
   } else if (plan === 'pro_max') {
-    // Pro_max users get all decorations
     query = 'SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC';
   }
-  
-  db.query(query, params, (err, results) => {
+  db.query(query, params, async (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
-    
-    // Fix image URLs - handle both full URLs and relative paths
-    const decorationsWithFixedUrls = results.map(decoration => ({
-      ...decoration,
-      image: decoration.image ? 
-        (decoration.image.startsWith('http') ? decoration.image : `${config.api.baseUrl}${decoration.image}`) : 
-        null
+    const decorationsWithBase64 = await Promise.all(results.map(async decoration => {
+      let image = decoration.image;
+      if (image && !image.startsWith('http') && !image.startsWith('data:')) {
+        try {
+          const filePath = path.join(__dirname, '../public', image.startsWith('/') ? image : `/${image}`);
+          const mimeType = mime.lookup(filePath) || 'image/png';
+          const fileData = fs.readFileSync(filePath);
+          image = `data:${mimeType};base64,${fileData.toString('base64')}`;
+        } catch (e) {
+          image = null;
+        }
+      }
+      return { ...decoration, image };
     }));
-    
-    res.json({ decorations: decorationsWithFixedUrls });
+    res.json({ decorations: decorationsWithBase64 });
   });
 });
 
-// Public: List all active decorations for users
-router.get('/public', (req, res) => {
-  // Default to basic decorations for backward compatibility
-  db.query('SELECT * FROM decorations WHERE status = "Active" AND subscription_plan = "basic" ORDER BY id DESC', (err, results) => {
+// Public: List all active decorations for users (Base64 image if local file)
+router.get('/public', async (req, res) => {
+  db.query('SELECT * FROM decorations WHERE status = "Active" AND subscription_plan = "basic" ORDER BY id DESC', async (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
-    
-    // Fix image URLs - handle both full URLs and relative paths
-    const decorationsWithFixedUrls = results.map(decoration => ({
-      ...decoration,
-      image: decoration.image ? 
-        (decoration.image.startsWith('http') ? decoration.image : `${config.api.baseUrl}${decoration.image}`) : 
-        null
+    const decorationsWithBase64 = await Promise.all(results.map(async decoration => {
+      let image = decoration.image;
+      if (image && !image.startsWith('http') && !image.startsWith('data:')) {
+        try {
+          const filePath = path.join(__dirname, '../public', image.startsWith('/') ? image : `/${image}`);
+          const mimeType = mime.lookup(filePath) || 'image/png';
+          const fileData = fs.readFileSync(filePath);
+          image = `data:${mimeType};base64,${fileData.toString('base64')}`;
+        } catch (e) {
+          image = null;
+        }
+      }
+      return { ...decoration, image };
     }));
-    
-    res.json({ decorations: decorationsWithFixedUrls });
+    res.json({ decorations: decorationsWithBase64 });
   });
 });
 
