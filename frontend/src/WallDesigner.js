@@ -896,24 +896,6 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
               </div>
           </div>
               <div className="section-card">
-                <div className="section-title">Selected Decorations</div>
-                {decorationOverlays.length === 0 ? (
-                  <div style={{ color: '#888', fontSize: 14 }}>No decorations added yet.</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 160, overflowY: 'auto' }}>
-                    {decorationOverlays.map((dec, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: idx < decorationOverlays.length - 1 ? '1px solid #eee' : 'none' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <img src={dec.url} alt={dec.name || 'Decoration'} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 6, background: '#f8f9fa', border: '1px solid #ececec' }} />
-                          <div style={{ fontSize: 13, color: '#333' }}>{dec.name || 'Decoration'} #{idx + 1}</div>
-                        </div>
-                        <button className="delete-btn" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => deleteDecorationOverlay(idx)}>Remove</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="section-card">
                 <div className="section-title">Apply Frame</div>
                 {selectedImageId ? (
                   <select
@@ -936,6 +918,24 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                     <option value="wood">Wood</option>
                   </select>
                 ) : <div style={{ color: '#888', fontSize: 14 }}>Select an image to apply a frame.</div>}
+              </div>
+              <div className="section-card">
+                <div className="section-title">Selected Decorations</div>
+                {decorationOverlays.length === 0 ? (
+                  <div style={{ color: '#888', fontSize: 14 }}>No decorations added yet.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 160, overflowY: 'auto' }}>
+                    {decorationOverlays.map((dec, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: idx < decorationOverlays.length - 1 ? '1px solid #eee' : 'none' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <img src={dec.url} alt={dec.name || 'Decoration'} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 6, background: '#f8f9fa', border: '1px solid #ececec' }} />
+                          <div style={{ fontSize: 13, color: '#333' }}>{dec.name || 'Decoration'} #{idx + 1}</div>
+                        </div>
+                        <button className="delete-btn" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => deleteDecorationOverlay(idx)}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -1130,25 +1130,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           </div>
         </div>
             </div>
-          {/* Selected Decorations container below the wall */}
-          <div className="selected-decorations-bar">
-            <div className="section-title" style={{ marginBottom: 8 }}>Selected Decorations</div>
-            {decorationOverlays.length === 0 ? (
-              <div style={{ color: '#888', fontSize: 14 }}>No decorations added yet. Click a decor to add it to the wall.</div>
-            ) : (
-              <div className="selected-decorations-grid">
-                {decorationOverlays.map((dec, idx) => (
-                  <div key={idx} className="selected-decorations-item">
-                    <div className="selected-decorations-thumb">
-                      <img src={dec.url} alt={dec.name || `Decoration ${idx+1}`} />
-                      <button className="selected-decorations-remove" title="Remove" onClick={() => deleteDecorationOverlay(idx)}>×</button>
-                    </div>
-                    <div className="selected-decorations-label">{dec.name || 'Decoration'} #{idx + 1}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+
       {showShareModal && (
           <div className="modal-overlay">
           <div className="share-modal">
