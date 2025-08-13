@@ -228,6 +228,11 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const [shareType, setShareType] = useState('view');
   const [generatedLink, setGeneratedLink] = useState('');
 
+  // Delete a decoration overlay by index
+  const deleteDecorationOverlay = (overlayIndex) => {
+    setDecorationOverlays(prev => prev.filter((_, i) => i !== overlayIndex));
+  };
+
   // Redirect to /login if not authenticated
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -891,6 +896,24 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
               </div>
           </div>
               <div className="section-card">
+                <div className="section-title">Selected Decorations</div>
+                {decorationOverlays.length === 0 ? (
+                  <div style={{ color: '#888', fontSize: 14 }}>No decorations added yet.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 160, overflowY: 'auto' }}>
+                    {decorationOverlays.map((dec, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: idx < decorationOverlays.length - 1 ? '1px solid #eee' : 'none' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <img src={dec.url} alt={dec.name || 'Decoration'} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 6, background: '#f8f9fa', border: '1px solid #ececec' }} />
+                          <div style={{ fontSize: 13, color: '#333' }}>{dec.name || 'Decoration'} #{idx + 1}</div>
+                        </div>
+                        <button className="delete-btn" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => deleteDecorationOverlay(idx)}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="section-card">
                 <div className="section-title">Apply Frame</div>
                 {selectedImageId ? (
                   <select
@@ -1099,6 +1122,33 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                         borderRadius: 6
                       }}
                     />
+                    <button
+                      className="delete-btn"
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        zIndex: 20,
+                        background: '#ff4444',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: 24,
+                        height: 24,
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        fontSize: 16,
+                        lineHeight: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)'
+                      }}
+                      title="Delete decoration"
+                      onClick={() => deleteDecorationOverlay(idx)}
+                    >
+                      ×
+                    </button>
                   </div>
                 </Rnd>
               ))}

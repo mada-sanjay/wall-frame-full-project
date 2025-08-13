@@ -10,7 +10,8 @@ const config = require('../config/config');
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, 'public/uploads'));
+    // Save into backend/public/uploads
+    cb(null, path.join(__dirname, '../public/uploads'));
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -137,7 +138,9 @@ router.delete('/decorations/:id', authenticateToken, requireAdmin, (req, res) =>
       
       // If the decoration has an uploaded image file, delete it from the server
       if (imagePath && imagePath.startsWith('/uploads/')) {
-        const filePath = path.join(__dirname, 'public', imagePath);
+        // Ensure we resolve to backend/public/uploads even if imagePath starts with '/'
+        const relativeImagePath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+        const filePath = path.join(__dirname, '../public', relativeImagePath);
         
         // Check if file exists and delete it
         if (fs.existsSync(filePath)) {
