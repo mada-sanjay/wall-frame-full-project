@@ -52,18 +52,43 @@ function requireAdmin(req, res, next) {
   });
 }
 
+// Helper to resolve base URL dynamically from request or env
+function getServerBaseUrl(req) {
+  const envBase = process.env.API_BASE_URL;
+  if (envBase && !envBase.includes('localhost')) return envBase;
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http');
+  const host = req.get('host');
+  return `${proto}://${host}`;
+}
+
+// Normalize image path to a relative '/uploads/...'
+function toRelativeUploadPath(imagePath) {
+  if (!imagePath) return null;
+  try {
+    if (imagePath.startsWith('http')) {
+      const url = new URL(imagePath);
+      return url.pathname.startsWith('/uploads/') ? url.pathname : null;
+    }
+    return imagePath.startsWith('/uploads/') ? imagePath : null;
+  } catch {
+    return null;
+  }
+}
+
 // List all decorations
 router.get('/decorations', authenticateToken, requireAdmin, (req, res) => {
   db.query('SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     
     // Fix image URLs - handle both full URLs and relative paths
-    const decorationsWithFixedUrls = results.map(decoration => ({
-      ...decoration,
-      image: decoration.image ? 
-        (decoration.image.startsWith('http') ? decoration.image : `${config.api.baseUrl}${decoration.image}`) : 
-        null
-    }));
+    const baseUrl = getServerBaseUrl(req);
+    const decorationsWithFixedUrls = results.map(decoration => {
+      const rel = toRelativeUploadPath(decoration.image) || decoration.image;
+      return {
+        ...decoration,
+        image: rel ? (rel.startsWith('http') || rel.startsWith('data:') ? rel : `${baseUrl}${rel}`) : null
+      };
+    });
     
     res.json({ decorations: decorationsWithFixedUrls });
   });
@@ -104,11 +129,11 @@ router.post('/decorations', authenticateToken, requireAdmin, (req, res) => {
         if (err2 || !rows.length) return res.status(500).json({ message: 'Failed to retrieve created decoration' });
         
         // Fix image URL - handle both full URLs and relative paths
+        const baseUrl = getServerBaseUrl(req);
+        const rel = toRelativeUploadPath(rows[0].image) || rows[0].image;
         const decorationWithFixedUrl = {
           ...rows[0],
-          image: rows[0].image ? 
-            (rows[0].image.startsWith('http') ? rows[0].image : `${config.api.baseUrl}${rows[0].image}`) : 
-            null
+          image: rel ? (rel.startsWith('http') || rel.startsWith('data:') ? rel : `${baseUrl}${rel}`) : null
         };
         
         res.json({ decoration: decorationWithFixedUrl });
@@ -137,9 +162,9 @@ router.delete('/decorations/:id', authenticateToken, requireAdmin, (req, res) =>
       if (err2) return res.status(500).json({ message: 'Database error', error: err2 });
       
       // If the decoration has an uploaded image file, delete it from the server
-      if (imagePath && imagePath.startsWith('/uploads/')) {
-        // Ensure we resolve to backend/public/uploads even if imagePath starts with '/'
-        const relativeImagePath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+      const relUpload = toRelativeUploadPath(imagePath);
+      if (relUpload) {
+        const relativeImagePath = relUpload.startsWith('/') ? relUpload.substring(1) : relUpload;
         const filePath = path.join(__dirname, '../public', relativeImagePath);
         
         // Check if file exists and delete it
@@ -157,7 +182,7 @@ router.delete('/decorations/:id', authenticateToken, requireAdmin, (req, res) =>
       
       res.json({ 
         message: 'Decoration deleted successfully',
-        deletedFile: imagePath && imagePath.startsWith('/uploads/') ? imagePath : null
+        deletedFile: relUpload || null
       });
     });
   });
@@ -171,11 +196,11 @@ router.post('/decorations/:id/approve', authenticateToken, requireAdmin, (req, r
       if (err2 || !rows.length) return res.json({ message: 'Decoration approved' });
       
       // Fix image URL - handle both full URLs and relative paths
+      const baseUrl = getServerBaseUrl(req);
+      const rel = toRelativeUploadPath(rows[0].image) || rows[0].image;
       const decorationWithFixedUrl = {
         ...rows[0],
-        image: rows[0].image ? 
-          (rows[0].image.startsWith('http') ? rows[0].image : `${config.api.baseUrl}${rows[0].image}`) : 
-          null
+        image: rel ? (rel.startsWith('http') || rel.startsWith('data:') ? rel : `${baseUrl}${rel}`) : null
       };
     
       res.json({ decoration: decorationWithFixedUrl });
