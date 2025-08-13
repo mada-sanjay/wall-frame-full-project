@@ -1110,7 +1110,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                   enableResizing={true}
                   >
                     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                    <img
+                      <img
                       src={dec.url}
                       alt={dec.name}
                       style={{
@@ -1122,33 +1122,6 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                         borderRadius: 6
                       }}
                     />
-                    <button
-                      className="delete-btn"
-                      style={{
-                        position: 'absolute',
-                        top: 4,
-                        right: 4,
-                        zIndex: 20,
-                        background: '#ff4444',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: 24,
-                        height: 24,
-                        cursor: 'pointer',
-                        fontWeight: 700,
-                        fontSize: 16,
-                        lineHeight: '20px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)'
-                      }}
-                      title="Delete decoration"
-                      onClick={() => deleteDecorationOverlay(idx)}
-                    >
-                      ×
-                    </button>
                   </div>
                 </Rnd>
               ))}
@@ -1157,6 +1130,25 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           </div>
         </div>
             </div>
+          {/* Selected Decorations container below the wall */}
+          <div className="selected-decorations-bar">
+            <div className="section-title" style={{ marginBottom: 8 }}>Selected Decorations</div>
+            {decorationOverlays.length === 0 ? (
+              <div style={{ color: '#888', fontSize: 14 }}>No decorations added yet. Click a decor to add it to the wall.</div>
+            ) : (
+              <div className="selected-decorations-grid">
+                {decorationOverlays.map((dec, idx) => (
+                  <div key={idx} className="selected-decorations-item">
+                    <div className="selected-decorations-thumb">
+                      <img src={dec.url} alt={dec.name || `Decoration ${idx+1}`} />
+                      <button className="selected-decorations-remove" title="Remove" onClick={() => deleteDecorationOverlay(idx)}>×</button>
+                    </div>
+                    <div className="selected-decorations-label">{dec.name || 'Decoration'} #{idx + 1}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
       {showShareModal && (
           <div className="modal-overlay">
           <div className="share-modal">

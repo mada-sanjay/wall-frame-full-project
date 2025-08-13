@@ -408,3 +408,61 @@ label.upload-label:hover {
   color: #888;
   margin-right: 10px;
 }
+
+/* Selected Decorations bar below the wall */
+.selected-decorations-bar {
+  width: 100%;
+  max-width: 1000px;
+  margin: 12px auto 24px auto;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1.5px solid #ececec;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 16px 18px;
+}
+.selected-decorations-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.selected-decorations-item {
+  width: 92px;
+}
+.selected-decorations-thumb {
+  position: relative;
+  width: 92px;
+  height: 72px;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.selected-decorations-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.selected-decorations-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: #ef4444;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.selected-decorations-label {
+  font-size: 12px;
+  color: #555;
+  margin-top: 6px;
+  text-align: center;
+}
