@@ -879,17 +879,21 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                     title={item.name}
                     className="decoration-image"
                     onClick={() => {
-                      setDecorationOverlays(prev => [
-                        ...prev,
-                        {
-                          url: item.url,
-                          name: item.name,
-                          x: 20 + prev.length * 30,
-                          y: 20 + prev.length * 30,
-                          width: 80,
-                          height: 60
-                        }
-                      ]);
+                      console.log('Decoration clicked:', item.name, item.url);
+                      const newOverlay = {
+                        url: item.url,
+                        name: item.name,
+                        x: 20 + decorationOverlays.length * 30,
+                        y: 20 + decorationOverlays.length * 30,
+                        width: 80,
+                        height: 60
+                      };
+                      console.log('Adding new overlay:', newOverlay);
+                      setDecorationOverlays(prev => {
+                        const newArray = [...prev, newOverlay];
+                        console.log('Updated decorationOverlays:', newArray);
+                        return newArray;
+                      });
                     }}
                   />
                 ))}
@@ -920,9 +924,9 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                 ) : <div style={{ color: '#888', fontSize: 14 }}>Select an image to apply a frame.</div>}
               </div>
               <div className="section-card">
-                <div className="section-title">Selected Decorations</div>
+                <div className="section-title">Selected Decorations (Count: {decorationOverlays.length})</div>
                 {decorationOverlays.length === 0 ? (
-                  <div style={{ color: '#888', fontSize: 14 }}>No decorations added yet.</div>
+                  <div style={{ color: '#888', fontSize: 14 }}>No decorations added yet. Click any decoration above to add it.</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 160, overflowY: 'auto' }}>
                     {decorationOverlays.map((dec, idx) => (
