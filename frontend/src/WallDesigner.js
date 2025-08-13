@@ -67,6 +67,25 @@ function getFrameStyle(frame, thickness = 4, color = '#333') {
 function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const navigate = useNavigate();
   
+  // Force refresh mechanism - add version to force cache busting
+  const APP_VERSION = 'v2.1.0-' + Date.now();
+  
+  useEffect(() => {
+    console.log('🚀 WallDesigner App Version:', APP_VERSION);
+    console.log('🕐 Loaded at:', new Date().toISOString());
+    
+    // Check if this is a new version
+    const lastVersion = localStorage.getItem('wallDesignerVersion');
+    if (lastVersion !== APP_VERSION) {
+      console.log('🔄 New version detected, clearing cache...');
+      localStorage.setItem('wallDesignerVersion', APP_VERSION);
+      // Force a hard refresh if version changes
+      if (lastVersion) {
+        window.location.reload(true);
+      }
+    }
+  }, []);
+  
   // Authentication check
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -755,8 +774,22 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       <div className="header-bar">
         <div className="header-logo">
           <span role="img" aria-label="palette">🎨</span> Wall Designer <span className="pro-badge">Pro</span>
+          <div style={{ fontSize: '10px', color: '#666', marginTop: '-5px', fontWeight: 'normal' }}>
+            v{APP_VERSION.split('-')[0]} | {new Date().toLocaleTimeString()}
+          </div>
         </div>
         <div className="header-actions">
+          <button 
+            className="action-btn" 
+            style={{ fontSize: '10px', padding: '4px 8px', marginRight: '8px', backgroundColor: '#ff6b6b', color: 'white' }}
+            onClick={() => {
+              localStorage.removeItem('wallDesignerVersion');
+              window.location.reload(true);
+            }}
+            title="Force Refresh - Click if features not showing"
+          >
+            🔄 Force Refresh
+          </button>
           <span className="user-email">{localStorage.getItem("userEmail") || "user@example.com"}</span>
           {localStorage.getItem('isAdmin') === '1' && (
             <button className="admin-dashboard" onClick={() => navigate('/admin')}><span style={{ marginRight: 6 }}>🛠️</span>Admin Dashboard</button>
