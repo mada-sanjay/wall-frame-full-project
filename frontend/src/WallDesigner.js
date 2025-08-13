@@ -305,6 +305,20 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       return;
     }
     
+    // Ask for draft name if it's a new draft
+    let draftName = '';
+    if (!currentDraftId) {
+      draftName = prompt("Enter a name for your draft:");
+      if (!draftName || draftName.trim() === '') {
+        setSaveError("Draft name is required.");
+        return;
+      }
+      if (draftName.length > 50) {
+        setSaveError("Draft name must be 50 characters or less.");
+        return;
+      }
+    }
+    
     // Gather session state
     const session_data = {
       wallSize,
@@ -312,6 +326,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       shape,
       uploadedImages,
       decorationOverlays,
+      draftName: draftName || 'Untitled Draft',
       // Add more state as needed
     };
     
@@ -342,7 +357,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         if (currentDraftId) {
           alert("Draft updated successfully!");
         } else {
-          alert("Draft saved successfully!");
+          alert(`Draft "${draftName}" saved successfully!`);
           // Set the current draft ID if it's a new draft
           if (data.sessionId) {
             setCurrentDraftId(data.sessionId);
@@ -866,8 +881,18 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
               </div>
             </>
           )}
-          {activeTab === 'decors' && (
+                    {activeTab === 'decors' && (
             <>
+              {/* Debug Info */}
+              <div className="section-card" style={{ border: '1px solid #ff6b6b', backgroundColor: '#fff5f5', marginBottom: 10 }}>
+                <div className="section-title" style={{ color: '#ff6b6b', fontSize: 12 }}>Debug Info</div>
+                <div style={{ fontSize: 10, color: '#666' }}>
+                  Active Tab: {activeTab}<br/>
+                  decorationOverlays: {decorationOverlays.length} items<br/>
+                  decorations: {decorations.length} items<br/>
+                  Current Time: {new Date().toLocaleTimeString()}
+                </div>
+              </div>
               <div className="section-card">
                 <div className="section-title">My Decorations</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 120, overflowY: 'auto' }}>
@@ -923,14 +948,22 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                   </select>
                 ) : <div style={{ color: '#888', fontSize: 14 }}>Select an image to apply a frame.</div>}
               </div>
-              <div className="section-card">
-                <div className="section-title">Selected Decorations (Count: {decorationOverlays.length})</div>
+              <div className="section-card" style={{ border: '2px solid #007bff', backgroundColor: '#f8f9ff' }}>
+                <div className="section-title" style={{ color: '#007bff', fontWeight: 'bold' }}>
+                  Selected Decorations (Count: {decorationOverlays.length})
+                </div>
+                <div style={{ fontSize: 11, color: '#666', marginBottom: 8 }}>
+                  Debug: decorationOverlays state = {JSON.stringify(decorationOverlays.length)}
+                </div>
                 {decorationOverlays.length === 0 ? (
-                  <div style={{ color: '#888', fontSize: 14 }}>No decorations added yet. Click any decoration above to add it.</div>
+                  <div style={{ color: '#888', fontSize: 14, padding: '10px', textAlign: 'center', backgroundColor: '#f5f5f5', borderRadius: 6 }}>
+                    🎯 No decorations added yet.<br/>
+                    Click any decoration above to add it to the wall!
+                  </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 160, overflowY: 'auto' }}>
                     {decorationOverlays.map((dec, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: idx < decorationOverlays.length - 1 ? '1px solid #eee' : 'none' }}>
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', backgroundColor: '#fff', borderRadius: 6, border: '1px solid #ddd' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <img src={dec.url} alt={dec.name || 'Decoration'} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 6, background: '#f8f9fa', border: '1px solid #ececec' }} />
                           <div style={{ fontSize: 13, color: '#333' }}>{dec.name || 'Decoration'} #{idx + 1}</div>
