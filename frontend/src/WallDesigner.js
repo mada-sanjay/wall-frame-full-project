@@ -781,14 +781,23 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         <div className="header-actions">
           <button 
             className="action-btn" 
-            style={{ fontSize: '10px', padding: '4px 8px', marginRight: '8px', backgroundColor: '#ff6b6b', color: 'white' }}
+            style={{ 
+              fontSize: '12px', 
+              padding: '6px 12px', 
+              marginRight: '8px', 
+              backgroundColor: '#ff6b6b', 
+              color: 'white',
+              border: '2px solid #ff4444',
+              fontWeight: 'bold',
+              minWidth: '120px'
+            }}
             onClick={() => {
               localStorage.removeItem('wallDesignerVersion');
               window.location.reload(true);
             }}
             title="Force Refresh - Click if features not showing"
           >
-            🔄 Force Refresh
+            🔄 FORCE REFRESH
           </button>
           <span className="user-email">{localStorage.getItem("userEmail") || "user@example.com"}</span>
           {localStorage.getItem('isAdmin') === '1' && (
@@ -810,6 +819,24 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         </div>
         <div className="divider-line" />
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1, justifyContent: 'flex-start', marginLeft: 24 }}>
+          <button 
+            className="action-btn" 
+            style={{ 
+              fontSize: '12px', 
+              padding: '6px 12px', 
+              backgroundColor: '#ff6b6b', 
+              color: 'white',
+              border: '2px solid #ff4444',
+              fontWeight: 'bold'
+            }}
+            onClick={() => {
+              localStorage.removeItem('wallDesignerVersion');
+              window.location.reload(true);
+            }}
+            title="Force Refresh - Click if features not showing"
+          >
+            🔄 FORCE REFRESH
+          </button>
           <button className="action-btn reset-save-btn" onClick={handleNewDesign}>
             <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>↻</span> Reset View
           </button>
