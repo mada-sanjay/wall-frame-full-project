@@ -67,23 +67,12 @@ function getFrameStyle(frame, thickness = 4, color = '#333') {
 function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const navigate = useNavigate();
   
-  // Force refresh mechanism - add version to force cache busting
-  const APP_VERSION = 'v2.1.0-' + Date.now();
-  
+  const APP_VERSION = 'v2.1.0';
+
   useEffect(() => {
     console.log('🚀 WallDesigner App Version:', APP_VERSION);
     console.log('🕐 Loaded at:', new Date().toISOString());
-    
-    // Check if this is a new version
-    const lastVersion = localStorage.getItem('wallDesignerVersion');
-    if (lastVersion !== APP_VERSION) {
-      console.log('🔄 New version detected, clearing cache...');
-      localStorage.setItem('wallDesignerVersion', APP_VERSION);
-      // Force a hard refresh if version changes
-      if (lastVersion) {
-        window.location.reload(true);
-      }
-    }
+    localStorage.setItem('wallDesignerVersion', APP_VERSION);
   }, []);
   
   // Authentication check
@@ -779,26 +768,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           </div>
         </div>
         <div className="header-actions">
-          <button 
-            className="action-btn" 
-            style={{ 
-              fontSize: '12px', 
-              padding: '6px 12px', 
-              marginRight: '8px', 
-              backgroundColor: '#ff6b6b', 
-              color: 'white',
-              border: '2px solid #ff4444',
-              fontWeight: 'bold',
-              minWidth: '120px'
-            }}
-            onClick={() => {
-              localStorage.removeItem('wallDesignerVersion');
-              window.location.reload(true);
-            }}
-            title="Force Refresh - Click if features not showing"
-          >
-            🔄 FORCE REFRESH
-          </button>
+          {/* Removed force refresh button */}
           <span className="user-email">{localStorage.getItem("userEmail") || "user@example.com"}</span>
           {localStorage.getItem('isAdmin') === '1' && (
             <button className="admin-dashboard" onClick={() => navigate('/admin')}><span style={{ marginRight: 6 }}>🛠️</span>Admin Dashboard</button>
@@ -819,24 +789,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         </div>
         <div className="divider-line" />
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1, justifyContent: 'flex-start', marginLeft: 24 }}>
-          <button 
-            className="action-btn" 
-            style={{ 
-              fontSize: '12px', 
-              padding: '6px 12px', 
-              backgroundColor: '#ff6b6b', 
-              color: 'white',
-              border: '2px solid #ff4444',
-              fontWeight: 'bold'
-            }}
-            onClick={() => {
-              localStorage.removeItem('wallDesignerVersion');
-              window.location.reload(true);
-            }}
-            title="Force Refresh - Click if features not showing"
-          >
-            🔄 FORCE REFRESH
-          </button>
+          {/* Removed force refresh button */}
           <button className="action-btn reset-save-btn" onClick={handleNewDesign}>
             <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>↻</span> Reset View
           </button>
@@ -943,16 +896,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           )}
                     {activeTab === 'decors' && (
             <>
-              {/* Debug Info */}
-              <div className="section-card" style={{ border: '1px solid #ff6b6b', backgroundColor: '#fff5f5', marginBottom: 10 }}>
-                <div className="section-title" style={{ color: '#ff6b6b', fontSize: 12 }}>Debug Info</div>
-                <div style={{ fontSize: 10, color: '#666' }}>
-                  Active Tab: {activeTab}<br/>
-                  decorationOverlays: {decorationOverlays.length} items<br/>
-                  decorations: {decorations.length} items<br/>
-                  Current Time: {new Date().toLocaleTimeString()}
-                </div>
-              </div>
+              {/* Removed Debug Info panel */}
               <div className="section-card">
                 <div className="section-title">My Decorations</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 120, overflowY: 'auto' }}>
