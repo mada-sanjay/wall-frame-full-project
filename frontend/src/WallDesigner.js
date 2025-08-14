@@ -763,9 +763,6 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       <div className="header-bar">
         <div className="header-logo">
           <span role="img" aria-label="palette">🎨</span> Wall Designer <span className="pro-badge">Pro</span>
-          <div style={{ fontSize: '10px', color: '#666', marginTop: '-5px', fontWeight: 'normal' }}>
-            v{APP_VERSION.split('-')[0]} | {new Date().toLocaleTimeString()}
-          </div>
         </div>
         <div className="header-actions">
           {/* Removed force refresh button */}
@@ -956,15 +953,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                 <div className="section-title" style={{ color: '#007bff', fontWeight: 'bold' }}>
                   Selected Decorations (Count: {decorationOverlays.length})
                 </div>
-                <div style={{ fontSize: 11, color: '#666', marginBottom: 8 }}>
-                  Debug: decorationOverlays state = {JSON.stringify(decorationOverlays.length)}
-                </div>
-                {decorationOverlays.length === 0 ? (
-                  <div style={{ color: '#888', fontSize: 14, padding: '10px', textAlign: 'center', backgroundColor: '#f5f5f5', borderRadius: 6 }}>
-                    🎯 No decorations added yet.<br/>
-                    Click any decoration above to add it to the wall!
-                  </div>
-                ) : (
+                {decorationOverlays.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 160, overflowY: 'auto' }}>
                     {decorationOverlays.map((dec, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', backgroundColor: '#fff', borderRadius: 6, border: '1px solid #ddd' }}>
