@@ -2,7 +2,7 @@
 
 body, html {
   font-family: 'Poppins', Arial, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, #f5e9ff 0%, #ffffff 100%);
   margin: 0;
   padding: 0;
   color: #232946;
@@ -63,7 +63,7 @@ body, html {
   display: flex;
   width: 100vw;
   min-height: calc(100vh - 64px);
-  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  background: linear-gradient(135deg, #ffe9d6 0%, #f3f7ff 100%);
   justify-content: flex-start;
   align-items: flex-start;
   gap: 10px;
@@ -74,7 +74,7 @@ body, html {
 .sidebar {
   min-width: 280px;
   max-width: 340px;
-  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  background: linear-gradient(180deg, #fff3e0 0%, #ffe0b2 100%);
   border-right: 1.5px solid #ececec;
   padding: 32px 0 32px 32px;
   display: flex;
@@ -139,7 +139,7 @@ body, html {
   gap: 24px;
   flex: 1;
   padding: 48px 0 0 0;
-  background: linear-gradient(135deg, #ffeef8 0%, #f0f4ff 100%);
+  background: linear-gradient(180deg, #f9fcff 0%, #ffffff 100%);
 }
 .wall-canvas {
   background: #f0f2f5;
