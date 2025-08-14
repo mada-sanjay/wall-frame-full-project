@@ -33,7 +33,17 @@ const config = {
   cors: {
     allowedOrigins: process.env.ALLOWED_ORIGINS ? 
       process.env.ALLOWED_ORIGINS.split(',') : 
-      ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'https://wall-frame-full-project-frontend.onrender.com']
+      [
+        'http://localhost:3000', 
+        'http://localhost:3001', 
+        'http://localhost:3002', 
+        'http://127.0.0.1:3000', 
+        'http://127.0.0.1:3001',
+        'https://wall-frame-full-project-frontend.onrender.com',
+        'http://13.203.67.147',
+        'https://13.203.67.147',
+        ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])
+      ].filter(Boolean)
   },
   
   // File Upload Configuration

@@ -1,8 +1,11 @@
 const config = {
   // API Configuration
   api: {
-    baseUrl: 'http://13.203.67.147',
-    prefix: '/api'
+    baseUrl: process.env.REACT_APP_API_BASE_URL || 
+             (process.env.NODE_ENV === 'production' 
+               ? 'http://13.203.67.147:5000'
+               : 'http://localhost:5000'),
+    prefix: process.env.REACT_APP_API_PREFIX || '/api'
   },
   
   // App Configuration

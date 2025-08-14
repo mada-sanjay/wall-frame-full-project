@@ -1,23 +1,27 @@
 {
-  "name": "wall-frame-project",
+  "name": "wall-frame-full-project",
   "version": "1.0.0",
-  "description": "Wall Frame Design Platform",
+  "description": "Wall Frame Designer - Full Stack Application",
   "main": "index.js",
   "scripts": {
-    "start": "cd backend && npm start",
-    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
-    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "build": "cd frontend && npm run build",
-    "backend": "cd backend && npm start",
-    "frontend": "cd frontend && npm start"
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend && npm install",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "start:backend": "cd backend && npm start",
+    "build:frontend": "cd frontend && npm run build",
+    "deploy:frontend": "cd frontend && npm run build && echo 'Frontend built successfully'",
+    "deploy:backend": "cd backend && echo 'Backend ready for deployment'",
+    "deploy:all": "npm run deploy:frontend && npm run deploy:backend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "check:env": "node scripts/check-env.js"
   },
-  "dependencies": {
-    "dotenv": "^17.2.0",
-    "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^7.0.5",
-    "concurrently": "^8.2.2"
-  },
-  "keywords": ["wall-frame", "design", "react", "node"],
-  "author": "",
-  "license": "ISC"
+  "keywords": ["wallframe", "designer", "react", "nodejs", "mysql"],
+  "author": "WallFrame Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
 }

@@ -83,7 +83,7 @@ const createAdminUser = (db) => {
   return new Promise((resolve, reject) => {
     // Create admin user
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@wallframe.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'changeme123';
     
     bcrypt.hash(adminPassword, 10, (err, hash) => {
       if (err) {

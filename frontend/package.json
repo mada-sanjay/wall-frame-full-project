@@ -6,8 +6,8 @@
   "description": "Wall Frame Design Platform Frontend",
   "dependencies": {
     "html2canvas": "^1.4.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "react-draggable": "^4.5.0",
     "react-easy-crop": "^4.7.5",
     "react-rnd": "^10.5.2",

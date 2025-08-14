@@ -358,6 +358,21 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       
       console.log('Response status:', res.status);
       
+      // Handle different error statuses
+      if (res.status === 500) {
+        console.error('Server error (500):', res.statusText);
+        setSaveError("Server error. Please try again or contact support.");
+        return;
+      }
+      
+      if (res.status === 401) {
+        console.error('Unauthorized (401) - token may be expired');
+        setSaveError("Your session has expired. Please log in again.");
+        localStorage.removeItem('token');
+        navigate('/login');
+        return;
+      }
+      
       const data = await res.json();
       console.log('Response data:', data);
       
@@ -388,7 +403,11 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       }
     } catch (err) {
       console.error('Network error saving draft:', err);
-      setSaveError(`Network error while saving draft: ${err.message}`);
+      if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
+        setSaveError("Cannot connect to server. Please check your internet connection.");
+      } else {
+        setSaveError(`Network error while saving draft: ${err.message}`);
+      }
     }
   };
 
@@ -658,10 +677,13 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
     console.log('🔑 Current share token:', shareToken);
     console.log('🆔 Current draft ID:', currentDraftId);
     
-    if (!shareToken && !currentDraftId) {
+    if (!currentDraftId) {
       alert('Please save your draft first!');
       return;
     }
+    
+    // If no share token but we have a draft ID, we can still proceed
+    // The share token should be generated when the draft was saved
     setShowShareModal(true);
     setShareType('view');
     setGeneratedLink('');
@@ -670,17 +692,20 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const handleGenerateLink = () => {
     console.log('🔗 Generate link clicked');
     console.log('🔑 Share token:', shareToken);
+    console.log('🆔 Current draft ID:', currentDraftId);
     console.log('📋 Share type:', shareType);
     
-    if (!shareToken) {
-      console.log('❌ No share token available');
+    if (!shareToken && !currentDraftId) {
+      console.log('❌ No share token or draft ID available');
       alert('No share token available. Please save your draft first.');
       return;
     }
     
+    // Use share token if available, otherwise use draft ID as fallback
+    const identifier = shareToken || currentDraftId;
     const url = shareType === 'view'
-      ? `${window.location.origin}/view/${shareToken}`
-      : `${window.location.origin}/shared/${shareToken}`;
+      ? `${window.location.origin}/view/${identifier}`
+      : `${window.location.origin}/shared/${identifier}`;
     
     console.log('🔗 Generated URL:', url);
     setGeneratedLink(url);
@@ -707,10 +732,12 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   };
 
   const handleCopyShareLink = (type) => {
-    if (!shareToken) return;
+    const identifier = shareToken || currentDraftId;
+    if (!identifier) return;
+    
     const url = type === 'view'
-      ? `${window.location.origin}/view/${shareToken}`
-      : `${window.location.origin}/shared/${shareToken}`;
+      ? `${window.location.origin}/view/${identifier}`
+      : `${window.location.origin}/shared/${identifier}`;
     
     // Check if clipboard API is available
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -822,16 +849,16 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
             <>
               <div className="section-card">
                 <div className="section-title">Canvas Size</div>
-                <div style={{ display: 'flex', gap: 6, maxWidth: 180, alignItems: 'flex-end' }}>
-                  <div>
-                    <label htmlFor="canvas-width">Width</label>
-                    <input id="canvas-width" type="number" name="width" value={inputWidth} min={100} max={800} onChange={handleInputChange} />
+                <div className="canvas-size-inline" style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'nowrap', width: '100%' }}>
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor="canvas-width" style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>Width</label>
+                    <input id="canvas-width" type="number" name="width" value={inputWidth} min={100} max={800} onChange={handleInputChange} style={{ width: '100%', height: '32px', fontSize: '13px', padding: '6px 8px' }} />
                   </div>
-    <div>
-                    <label htmlFor="canvas-height">Height</label>
-                    <input id="canvas-height" type="number" name="height" value={inputHeight} min={100} max={2000} onChange={handleInputChange} />
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor="canvas-height" style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>Height</label>
+                    <input id="canvas-height" type="number" name="height" value={inputHeight} min={100} max={2000} onChange={handleInputChange} style={{ width: '100%', height: '32px', fontSize: '13px', padding: '6px 8px' }} />
                   </div>
-                  <button className="action-btn reset-save-btn" style={{ minWidth: 60, padding: '8px 11px', background: 'linear-gradient(90deg, #ff6b6b 0%, #ff5252 100%)', color: 'white', border: '2px solid #ff4444', fontWeight: 'bold' }} onClick={handleSetWallSize}>Set</button>
+                  <button className="action-btn reset-save-btn" style={{ minWidth: 50, height: '32px', padding: '6px 12px', background: 'linear-gradient(90deg, #7c3aed 0%, #6d28d9 100%)', color: 'white', border: 'none', fontWeight: 'bold', borderRadius: 8, fontSize: '12px' }} onClick={handleSetWallSize}>Set</button>
                 </div>
               </div>
               <div className="section-card">
@@ -953,7 +980,12 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                 <div className="section-title" style={{ color: '#007bff', fontWeight: 'bold' }}>
                   Selected Decorations (Count: {decorationOverlays.length})
                 </div>
-                {decorationOverlays.length > 0 && (
+
+                {decorationOverlays.length === 0 ? (
+                  <div style={{ color: '#888', fontSize: 14, padding: '10px', textAlign: 'center', backgroundColor: '#f5f5f5', borderRadius: 6 }}>
+                    No decorations selected
+                  </div>
+                ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 160, overflowY: 'auto' }}>
                     {decorationOverlays.map((dec, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', backgroundColor: '#fff', borderRadius: 6, border: '1px solid #ddd' }}>

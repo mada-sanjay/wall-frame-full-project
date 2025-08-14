@@ -17,14 +17,8 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // Define allowed origins
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'https://wall-frame-full-project-frontend.onrender.com',
-      'http://13.203.67.147',  // Your frontend URL
-      'https://13.203.67.147'  // HTTPS version
-    ];
+    // Define allowed origins from config
+    const allowedOrigins = config.cors.allowedOrigins;
 
     if (allowedOrigins.indexOf(origin) !== -1) {
       console.log('✅ Allowing origin:', origin);
@@ -40,6 +34,18 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+// Security headers for production
+if (config.nodeEnv === 'production') {
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    next();
+  });
+}
 
 // Increase payload limit for image uploads
 app.use(express.json({ limit: config.upload.maxFileSize }));
@@ -119,7 +125,7 @@ app.use(`${config.api.prefix}/admin`, adminRoutes);
 app.listen(config.port, async () => {
   console.log(`🚀 Backend running on port ${config.port}`);
   console.log(`🌍 Environment: ${config.nodeEnv}`);
-  console.log(`🔗 CORS Origins: http://localhost:3000, http://localhost:3001, https://wall-frame-full-project-frontend.onrender.com, http://13.203.67.147, https://13.203.67.147`);
+  console.log(`🔗 CORS Origins: ${config.cors.allowedOrigins.join(', ')}`);
 
   // Auto-setup database on startup
   await autoSetupDatabase();

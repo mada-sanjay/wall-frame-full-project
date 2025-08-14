@@ -250,8 +250,21 @@ router.get('/public/:plan', async (req, res) => {
   }
   db.query(query, params, async (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
+    const baseUrl = getServerBaseUrl(req);
     const decorationsWithBase64 = await Promise.all(results.map(async decoration => {
       let image = decoration.image;
+      // If it's a full http URL but localhost or different host, rewrite to current host
+      if (image && image.startsWith('http')) {
+        try {
+          const u = new URL(image);
+          if (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || !u.host || u.origin !== baseUrl) {
+            if (u.pathname && u.pathname.startsWith('/uploads/')) {
+              image = `${baseUrl}${u.pathname}`;
+            }
+          }
+        } catch {}
+      }
+      // If it's a relative path, convert to data URI to avoid CORS/static hosting issues
       if (image && !image.startsWith('http') && !image.startsWith('data:')) {
         try {
           const filePath = path.join(__dirname, '../public', image.startsWith('/') ? image : `/${image}`);
@@ -259,7 +272,8 @@ router.get('/public/:plan', async (req, res) => {
           const fileData = fs.readFileSync(filePath);
           image = `data:${mimeType};base64,${fileData.toString('base64')}`;
         } catch (e) {
-          image = null;
+          // Fallback to absolute URL if file read fails
+          image = `${baseUrl}${image.startsWith('/') ? image : `/${image}`}`;
         }
       }
       return { ...decoration, image };
@@ -272,8 +286,19 @@ router.get('/public/:plan', async (req, res) => {
 router.get('/public', async (req, res) => {
   db.query('SELECT * FROM decorations WHERE status = "Active" AND subscription_plan = "basic" ORDER BY id DESC', async (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
+    const baseUrl = getServerBaseUrl(req);
     const decorationsWithBase64 = await Promise.all(results.map(async decoration => {
       let image = decoration.image;
+      if (image && image.startsWith('http')) {
+        try {
+          const u = new URL(image);
+          if (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || !u.host || u.origin !== baseUrl) {
+            if (u.pathname && u.pathname.startsWith('/uploads/')) {
+              image = `${baseUrl}${u.pathname}`;
+            }
+          }
+        } catch {}
+      }
       if (image && !image.startsWith('http') && !image.startsWith('data:')) {
         try {
           const filePath = path.join(__dirname, '../public', image.startsWith('/') ? image : `/${image}`);
@@ -281,7 +306,7 @@ router.get('/public', async (req, res) => {
           const fileData = fs.readFileSync(filePath);
           image = `data:${mimeType};base64,${fileData.toString('base64')}`;
         } catch (e) {
-          image = null;
+          image = `${baseUrl}${image.startsWith('/') ? image : `/${image}`}`;
         }
       }
       return { ...decoration, image };

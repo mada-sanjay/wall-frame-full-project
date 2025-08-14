@@ -18,7 +18,7 @@ const SECTIONS = [
 
 function AdminPage() {
   const [users, setUsers] = useState([]);
-  const [drafts, setDrafts] = useState([]);
+  const [drafts, setDrafts] = useState([]); 
   const [stats, setStats] = useState({ userCount: 0, draftCount: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
