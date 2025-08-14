@@ -881,7 +881,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
                     <label htmlFor="canvas-height">Height</label>
                     <input id="canvas-height" type="number" name="height" value={inputHeight} min={100} max={2000} onChange={handleInputChange} />
                   </div>
-                  <button className="action-btn reset-save-btn" style={{ minWidth: 60, padding: '8px 11px' }} onClick={handleSetWallSize}>Set</button>
+                  <button className="action-btn reset-save-btn" style={{ minWidth: 60, padding: '8px 11px', background: 'linear-gradient(90deg, #ff6b6b 0%, #ff5252 100%)', color: 'white', border: '2px solid #ff4444', fontWeight: 'bold' }} onClick={handleSetWallSize}>Set</button>
                 </div>
               </div>
               <div className="section-card">
