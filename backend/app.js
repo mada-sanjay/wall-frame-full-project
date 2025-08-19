@@ -20,13 +20,17 @@ const corsOptions = {
     // Define allowed origins from config
     const allowedOrigins = config.cors.allowedOrigins;
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.indexOf(origin) !== -1 || 
+        origin.includes('13.203.67.147') || 
+        origin.includes('localhost')) {
       console.log('✅ Allowing origin:', origin);
       callback(null, true);
     } else {
       console.log('❌ Blocking origin:', origin);
       console.log('🔍 Allowed origins:', allowedOrigins);
-      callback(new Error('Not allowed by CORS'));
+      // Temporarily allow all origins for debugging deployment issues
+      console.log('🚨 Temporarily allowing for deployment debugging');
+      callback(null, true);
     }
   },
   credentials: true,
