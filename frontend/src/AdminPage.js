@@ -110,12 +110,42 @@ function AdminPage() {
   useEffect(() => {
     if (section !== 'decorations') return;
     const token = localStorage.getItem('token');
-    fetch(getAdminApiUrl('/decorations'), { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => setDecorations(data.decorations || []));
-          fetch(getAdminApiUrl('/decorations/pending'), { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => setPendingDecorations(data.decorations || []));
+    
+    // Fetch active decorations
+    fetch(getApiUrl('/decorations'), { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        console.log('🔍 Decorations API response status:', res.status);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('✅ Decorations data:', data);
+        setDecorations(data.decorations || []);
+      })
+      .catch(error => {
+        console.error('❌ Error fetching decorations:', error);
+        setDecorations([]);
+      });
+      
+    // Fetch pending decorations
+    fetch(getApiUrl('/decorations/pending'), { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        console.log('🔍 Pending decorations API response status:', res.status);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('✅ Pending decorations data:', data);
+        setPendingDecorations(data.decorations || []);
+      })
+      .catch(error => {
+        console.error('❌ Error fetching pending decorations:', error);
+        setPendingDecorations([]);
+      });
   }, [section]);
 
   // Fetch all user emails for the email notification dropdown
@@ -160,7 +190,7 @@ function AdminPage() {
     formData.append('image', file);
     
     const token = localStorage.getItem('token');
-    const response = await fetch(getApiUrl('/upload-image'), {
+    const response = await fetch(getApiUrl('/decorations/upload-image'), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: formData
@@ -189,7 +219,7 @@ function AdminPage() {
       }
       
       const token = localStorage.getItem('token');
-      const response = await fetch(getAdminApiUrl('/decorations'), {
+      const response = await fetch(getApiUrl('/decorations'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ...newDecoration, image: imageUrl })
@@ -222,7 +252,7 @@ function AdminPage() {
     const token = localStorage.getItem('token');
     console.log('🔑 Token available:', !!token);
     
-    fetch(getAdminApiUrl(`/decorations/${id}`), {
+    fetch(getApiUrl(`/decorations/${id}`), {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -254,7 +284,7 @@ function AdminPage() {
   // Approve pending decoration (API)
   const handleApproveDecoration = (dec) => {
     const token = localStorage.getItem('token');
-    fetch(getAdminApiUrl(`/decorations/${dec.id}/approve`), {
+    fetch(getApiUrl(`/decorations/${dec.id}/approve`), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -268,7 +298,7 @@ function AdminPage() {
   // Reject pending decoration (API)
   const handleRejectDecoration = (id) => {
     const token = localStorage.getItem('token');
-    fetch(getAdminApiUrl(`/decorations/${id}/reject`), {
+    fetch(getApiUrl(`/decorations/${id}/reject`), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     })

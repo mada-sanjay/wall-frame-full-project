@@ -76,7 +76,7 @@ function toRelativeUploadPath(imagePath) {
 }
 
 // List all decorations
-router.get('/decorations', authenticateToken, requireAdmin, (req, res) => {
+router.get('/', authenticateToken, requireAdmin, (req, res) => {
   db.query('SELECT * FROM decorations WHERE status = "Active" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     
@@ -95,7 +95,7 @@ router.get('/decorations', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // List pending decorations
-router.get('/decorations/pending', authenticateToken, requireAdmin, (req, res) => {
+router.get('/pending', authenticateToken, requireAdmin, (req, res) => {
   db.query('SELECT * FROM decorations WHERE status = "Pending" ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     
@@ -112,7 +112,7 @@ router.get('/decorations/pending', authenticateToken, requireAdmin, (req, res) =
 });
 
 // Add new decoration
-router.post('/decorations', authenticateToken, requireAdmin, (req, res) => {
+router.post('/', authenticateToken, requireAdmin, (req, res) => {
   const { name, category, image, subscription_plan = 'basic' } = req.body;
   if (!name || !category || !image) {
     return res.status(400).json({ message: 'Name, category, and image are required' });
@@ -143,7 +143,7 @@ router.post('/decorations', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Delete decoration with file cleanup
-router.delete('/decorations/:id', authenticateToken, requireAdmin, (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
   const decorationId = req.params.id;
   
   // First, get the decoration to find the image file
@@ -189,7 +189,7 @@ router.delete('/decorations/:id', authenticateToken, requireAdmin, (req, res) =>
 });
 
 // Approve pending decoration
-router.post('/decorations/:id/approve', authenticateToken, requireAdmin, (req, res) => {
+router.post('/:id/approve', authenticateToken, requireAdmin, (req, res) => {
   db.query('UPDATE decorations SET status = "Active" WHERE id = ?', [req.params.id], (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     db.query('SELECT * FROM decorations WHERE id = ?', [req.params.id], (err2, rows) => {
@@ -209,7 +209,7 @@ router.post('/decorations/:id/approve', authenticateToken, requireAdmin, (req, r
 });
 
 // Reject pending decoration
-router.post('/decorations/:id/reject', authenticateToken, requireAdmin, (req, res) => {
+router.post('/:id/reject', authenticateToken, requireAdmin, (req, res) => {
   db.query('DELETE FROM decorations WHERE id = ?', [req.params.id], (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
     res.json({ message: 'Decoration rejected and deleted' });

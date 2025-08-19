@@ -582,7 +582,7 @@ router.get('/debug/user-drafts', authenticateToken, (req, res) => {
   );
 });
 
-// Add endpoint to fetch by share_token
+// Add endpoint to fetch by share_token (for editable sharing)
 router.get('/shared/:token', (req, res) => {
   const token = req.params.token;
   console.log('GET /shared/:token called with token:', token);
@@ -601,6 +601,30 @@ router.get('/shared/:token', (req, res) => {
         return res.status(404).json({ error: "Design not found" });
       }
       console.log('Shared design found:', results[0].id, 'for token:', token);
+      res.status(200).json(results[0]);
+    }
+  );
+});
+
+// Add endpoint to fetch by share_token (for view-only sharing)
+router.get('/view/:token', (req, res) => {
+  const token = req.params.token;
+  console.log('GET /view/:token called with token:', token);
+  
+  // Query by share_token instead of draft ID (same as shared but for view-only)
+  db.query(
+    'SELECT d.*, u.email as user_email FROM drafts d JOIN users u ON d.user_id = u.id WHERE d.share_token = ?',
+    [token],
+    (err, results) => {
+      if (err) {
+        console.error('Error fetching shared design for view:', err);
+        return res.status(500).json({ error: "Error fetching design" });
+      }
+      if (!results.length) {
+        console.log('No shared design found for view token:', token);
+        return res.status(404).json({ error: "Design not found" });
+      }
+      console.log('Shared design found for view:', results[0].id, 'for token:', token);
       res.status(200).json(results[0]);
     }
   );

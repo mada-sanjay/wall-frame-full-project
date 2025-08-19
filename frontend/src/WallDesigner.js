@@ -64,7 +64,7 @@ function getFrameStyle(frame, thickness = 4, color = '#333') {
   }
 }
 
-function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
+function WallDesigner({ headingBg, setHeadingBg, initialDraft, isSharedView = false }) {
   const navigate = useNavigate();
   
   const APP_VERSION = 'v2.1.0';
@@ -72,11 +72,18 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   useEffect(() => {
     console.log('🚀 WallDesigner App Version:', APP_VERSION);
     console.log('🕐 Loaded at:', new Date().toISOString());
+    console.log('🎯 WallDesigner mode - isSharedView:', isSharedView);
+    console.log('🎯 WallDesigner initialDraft:', initialDraft);
     localStorage.setItem('wallDesignerVersion', APP_VERSION);
   }, []);
   
-  // Authentication check
+  // Authentication check (skip for shared views)
   useEffect(() => {
+    if (isSharedView) {
+      console.log('🔍 WallDesigner - Shared view mode, skipping authentication');
+      return;
+    }
+    
     const token = localStorage.getItem('token');
     console.log('🔍 WallDesigner - Token check:', !!token);
     
@@ -95,7 +102,7 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
       localStorage.removeItem('token');
       navigate('/login');
     }
-  }, [navigate]);
+  }, [navigate, isSharedView]);
 
   const [wallSize, setWallSize] = useState({ width: 500, height: 300 });
   const [prevWallSize, setPrevWallSize] = useState({ width: 500, height: 300 });
@@ -105,7 +112,6 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const [inputWidth, setInputWidth] = useState(500);
   const [inputHeight, setInputHeight] = useState(300);
   const [selectedImageId, setSelectedImageId] = useState(null);
-  const [showDefaultWallImages, setShowDefaultWallImages] = useState(false);
   const [showDecorations, setShowDecorations] = useState(false);
   const [decorationOverlays, setDecorationOverlays] = useState([]);
   const [savedSessions, setSavedSessions] = useState([]);
@@ -120,12 +126,6 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
     '/sanj.jpg',
     
     
-    
-    
-    
-   
-    
-    
     // Add more local images here as needed
   ];
   const [decorations, setDecorations] = useState([]);
@@ -137,6 +137,46 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
   const [activeTab, setActiveTab] = useState('design');
 
   useEffect(() => {
+    // Skip user-specific data fetching for shared views
+    if (isSharedView) {
+      console.log('🔍 Shared view mode - using basic plan and public decorations');
+      setPlan("basic");
+      setDraftLimit(3);
+      
+      // Fetch basic decorations for shared view
+      fetch(getApiUrl('/decorations/public/basic'))
+        .then(res => res.json())
+        .then(data => {
+          console.log('📦 Basic decorations data received:', data);
+          const dbDecorations = (data.decorations || []).map(d => ({ name: d.name, url: d.image }));
+          const hardcoded = [
+            { name: 'frame', url: '/frame_1.png' },
+            { name: 'chair', url: '/chair.png' },
+            { name: 'garland', url: '/garland-removebg-preview.png' },
+            { name: 'garland', url: '/one.png' },
+            { name: 'Image', url: '/two.png' },
+            { name: 'garland', url: '/three.png' },
+            { name: 'flower', url: '/flower-removebg-preview.png' },
+          ];
+          const allDecorations = [...dbDecorations, ...hardcoded];
+          setDecorations(allDecorations);
+        })
+        .catch(error => {
+          console.error('❌ Error fetching basic decorations:', error);
+          const hardcoded = [
+            { name: 'frame', url: '/frame_1.png' },
+            { name: 'chair', url: '/chair.png' },
+            { name: 'garland', url: '/garland-removebg-preview.png' },
+            { name: 'garland', url: '/one.png' },
+            { name: 'Image', url: '/two.png' },
+            { name: 'garland', url: '/three.png' },
+            { name: 'flower', url: '/flower-removebg-preview.png' },
+          ];
+          setDecorations(hardcoded);
+        });
+      return;
+    }
+    
     // Fetch user plan first, then fetch decorations based on plan
     const token = localStorage.getItem("token");
     console.log('🔍 Fetching user plan and decorations...');
@@ -231,27 +271,53 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
         .then(res => res.json())
         .then(data => setDraftCount((data.sessions || []).length));
     }
-  }, []);
+  }, [isSharedView]);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareType, setShareType] = useState('view');
   const [generatedLink, setGeneratedLink] = useState('');
+  
+  // Export modal states
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState('png');
+  const [exportQuality, setExportQuality] = useState('high');
+  const [exportResolution, setExportResolution] = useState('720p'); // Default to lowest resolution
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Reset export resolution based on plan restrictions
+  useEffect(() => {
+    const allowedResolutions = {
+      'basic': ['720p'],
+      'pro': ['720p', '1080p'], 
+      'pro_max': ['720p', '1080p', '4k']
+    };
+    
+    const allowed = allowedResolutions[plan] || ['720p'];
+    if (!allowed.includes(exportResolution)) {
+      // Reset to the highest available resolution for the plan
+      setExportResolution(allowed[allowed.length - 1]);
+    }
+  }, [plan, exportResolution]);
 
   // Delete a decoration overlay by index
   const deleteDecorationOverlay = (overlayIndex) => {
     setDecorationOverlays(prev => prev.filter((_, i) => i !== overlayIndex));
   };
 
-  // Redirect to /login if not authenticated
+  // Redirect to /login if not authenticated (skip for shared views)
   useEffect(() => {
+    if (isSharedView) return;
+    
     const token = localStorage.getItem("token");
     if (!token) {
       navigate("/login", { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, isSharedView]);
 
   useEffect(() => {
-    fetchDrafts();
-  }, []);
+    if (!isSharedView) {
+      fetchDrafts();
+    }
+  }, [isSharedView]);
 
   useEffect(() => {
     if (initialDraft) {
@@ -413,9 +479,13 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
 
   const fetchDrafts = async () => {
     const user_email = localStorage.getItem("userEmail");
-    console.log('🔍 fetchDrafts called with user_email:', user_email);
+    console.log('🔍 fetchDrafts called with user_email:', user_email, 'isSharedView:', isSharedView);
     if (!user_email) {
       console.log('❌ No user_email found in localStorage');
+      return;
+    }
+    if (isSharedView) {
+      console.log('🔍 Skipping fetchDrafts in shared view mode');
       return;
     }
     try {
@@ -662,6 +732,98 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
     e.preventDefault();
   };
 
+  // Enhanced export function with multiple formats and quality options
+  const handleExport = async () => {
+    if (!wallRef.current) return;
+    
+    setIsExporting(true);
+    
+    try {
+      // Get resolution settings
+      const resolutions = {
+        '720p': { width: 1280, height: 720, scale: 1 },
+        '1080p': { width: 1920, height: 1080, scale: 1.5 },
+        '4k': { width: 3840, height: 2160, scale: 3 }
+      };
+      
+      const resolution = resolutions[exportResolution];
+      
+      // Configure html2canvas options based on quality
+      const html2canvasOptions = {
+        backgroundColor: null,
+        scale: resolution.scale,
+        useCORS: true,
+        allowTaint: true,
+        width: wallSize.width,
+        height: wallSize.height,
+        logging: false
+      };
+      
+      // Adjust quality based on setting
+      if (exportQuality === 'high') {
+        html2canvasOptions.scale = Math.max(resolution.scale, 2);
+      } else if (exportQuality === 'medium') {
+        html2canvasOptions.scale = Math.max(resolution.scale * 0.7, 1);
+      } else if (exportQuality === 'low') {
+        html2canvasOptions.scale = 1;
+      }
+      
+      const canvas = await html2canvas(wallRef.current, html2canvasOptions);
+      
+      // Handle different export formats
+      let dataUrl, fileName, mimeType;
+      
+      switch (exportFormat) {
+        case 'png':
+          dataUrl = canvas.toDataURL('image/png');
+          fileName = `wall-design-${exportResolution}-${exportQuality}.png`;
+          mimeType = 'image/png';
+          break;
+          
+        case 'jpeg':
+          // JPEG quality based on setting
+          const jpegQuality = exportQuality === 'high' ? 0.95 : exportQuality === 'medium' ? 0.8 : 0.6;
+          dataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
+          fileName = `wall-design-${exportResolution}-${exportQuality}.jpg`;
+          mimeType = 'image/jpeg';
+          break;
+          
+        case 'webp':
+          const webpQuality = exportQuality === 'high' ? 0.95 : exportQuality === 'medium' ? 0.8 : 0.6;
+          dataUrl = canvas.toDataURL('image/webp', webpQuality);
+          fileName = `wall-design-${exportResolution}-${exportQuality}.webp`;
+          mimeType = 'image/webp';
+          break;
+          
+        default:
+          dataUrl = canvas.toDataURL('image/png');
+          fileName = `wall-design-${exportResolution}-${exportQuality}.png`;
+          mimeType = 'image/png';
+      }
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = dataUrl;
+      link.click();
+      
+      // Show success message
+      setTimeout(() => {
+        alert(`✅ Design exported successfully as ${fileName}`);
+      }, 100);
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('❌ Export failed. Please try again.');
+    } finally {
+      setIsExporting(false);
+      setShowExportModal(false);
+    }
+  };
+  
+
+
+  // Legacy function for backward compatibility
   const handleDownload = async () => {
     if (!wallRef.current) return;
     const canvas = await html2canvas(wallRef.current, { backgroundColor: null });
@@ -786,22 +948,44 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
 
   return (
     <div className="wall-designer-root">
-      {/* Top Header Bar */}
-      <div className="header-bar">
-        <div className="header-logo">
-          <span role="img" aria-label="palette">🎨</span> Wall Designer <span className="pro-badge">Pro</span>
+      {/* Professional Background Elements */}
+      <div className="geometric-accent"></div>
+      <div className="grid-pattern"></div>
+      <div className="floating-particles"></div>
+      {/* Modern Header Bar */}
+      <div className="modern-header">
+        <div className="header-left">
+          <div className="user-info">
+            <div className="user-avatar">
+              {(localStorage.getItem("userEmail") || "U").charAt(0).toUpperCase()}
+            </div>
+            <span className="user-email">
+              {localStorage.getItem("userEmail") || "user@example.com"}
+            </span>
+          </div>
+          <div className="brand-section">
+            <div className="brand-icon">🎨</div>
+            <div className="brand-text">
+              <span className="brand-name">Wall Designer</span>
+              <span className="brand-badge">PRO</span>
+            </div>
+          </div>
         </div>
         <div className="header-actions">
-          {/* Removed force refresh button */}
-          <span className="user-email">{localStorage.getItem("userEmail") || "user@example.com"}</span>
           {localStorage.getItem('isAdmin') === '1' && (
-            <button className="admin-dashboard" onClick={() => navigate('/admin')}><span style={{ marginRight: 6 }}>🛠️</span>Admin Dashboard</button>
+            <button className="modern-btn admin-btn" onClick={() => navigate('/admin')}>
+              <span className="btn-icon">🛠️</span>
+              <span className="btn-text">Admin</span>
+            </button>
           )}
-          {/* Profile button: circular, icon only */}
-          <button className="profile-btn" onClick={handleProfile}>
-            <span>👤</span>
+          <button className="modern-btn profile-btn" onClick={handleProfile}>
+            <span className="btn-icon">👤</span>
+            <span className="btn-text">Profile</span>
           </button>
-          <button className="btn-logout" onClick={handleLogout}><span style={{ marginRight: 6 }}>⎋</span>Logout</button>
+          <button className="modern-btn logout-btn" onClick={handleLogout}>
+            <span className="btn-icon">⎋</span>
+            <span className="btn-text">Logout</span>
+          </button>
         </div>
       </div>
       {/* Replace the tabs div and the top control bar with a single flex row */}
@@ -812,13 +996,14 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           <button className={`tab-btn${activeTab === 'drafts' ? ' active' : ''}`} onClick={() => setActiveTab('drafts')}><span style={{ marginRight: 6 }}>🗂️</span>Drafts</button>
         </div>
         <div className="divider-line" />
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1, justifyContent: 'flex-start', marginLeft: 24 }}>
-          {/* Removed force refresh button */}
-          <button className="action-btn reset-save-btn" onClick={handleNewDesign}>
-            <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>↻</span> Reset View
+        <div className="action-buttons-left">
+          <button className="modern-action-btn reset-btn" onClick={handleNewDesign}>
+            <span className="action-icon">↻</span>
+            <span className="action-text">Reset View</span>
           </button>
-          <button className="action-btn reset-save-btn" onClick={handleSaveDraft}>
-            <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>💾</span> {currentDraftId ? 'Update Draft' : 'Save Draft'}
+          <button className="modern-action-btn save-btn" onClick={handleSaveDraft}>
+            <span className="action-icon">💾</span>
+            <span className="action-text">{currentDraftId ? 'Update Draft' : 'Save Draft'}</span>
           </button>
           {saveError && (
             <div style={{ 
@@ -833,12 +1018,14 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           )}
         </div>
         <div className="divider-line" />
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', paddingRight: 18 }}>
-          <button className="action-btn share-btn" onClick={handleShare}>
-            <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>🔗</span> Share
+        <div className="action-buttons-right">
+          <button className="modern-action-btn share-btn" onClick={handleShare}>
+            <span className="action-icon">🔗</span>
+            <span className="action-text">Share</span>
           </button>
-          <button className="action-btn download-btn" onClick={handleDownload}>
-            <span style={{ marginRight: 8, fontSize: 20, verticalAlign: 'middle' }}>⬇️</span> Download
+          <button className="modern-action-btn download-btn" onClick={() => setShowExportModal(true)}>
+            <span className="action-icon">⬇️</span>
+            <span className="action-text">Export</span>
           </button>
         </div>
       </div>
@@ -1213,6 +1400,296 @@ function WallDesigner({ headingBg, setHeadingBg, initialDraft }) {
           </div>
             )}
             <button onClick={() => setShowShareModal(false)} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: '#eee', color: '#333', fontWeight: 500, fontSize: 14, marginTop: 12 }}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* Enhanced Export Modal */}
+      {showExportModal && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div className="export-modal" style={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,255,0.9) 100%)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '20px',
+            padding: '32px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 20px 60px rgba(102, 126, 234, 0.2)',
+            border: '1px solid rgba(232, 236, 247, 0.8)',
+            position: 'relative'
+          }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <h3 style={{ 
+                fontSize: '24px', 
+                fontWeight: '700', 
+                background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                marginBottom: '8px'
+              }}>
+                Export Design
+              </h3>
+              <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
+                Choose your export format and quality settings
+              </p>
+            </div>
+
+            {/* Format Selection */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                color: '#374151', 
+                marginBottom: '8px' 
+              }}>
+                📁 Format
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                {[
+                  { value: 'png', label: 'PNG', desc: 'Best quality, transparent background' },
+                  { value: 'jpeg', label: 'JPEG', desc: 'Smaller file size, solid background' },
+                  { value: 'webp', label: 'WebP', desc: 'Modern format, great compression' }
+                ].map(format => (
+                  <button
+                    key={format.value}
+                    onClick={() => setExportFormat(format.value)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: exportFormat === format.value ? '2px solid #7c3aed' : '2px solid #e5e7eb',
+                      background: exportFormat === format.value ? '#f3f4f6' : '#ffffff',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>{format.label}</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{format.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Resolution Selection */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ 
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: '#374151'
+                }}>
+                  📐 Resolution
+                </label>
+                <div style={{
+                  background: plan === 'basic' 
+                    ? 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'
+                    : plan === 'pro' 
+                    ? 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)'
+                    : 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)',
+                  color: 'white',
+                  padding: '4px 12px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  {plan.replace('_', ' ')} PLAN
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${
+                plan === 'basic' ? 1 : plan === 'pro' ? 2 : 3
+              }, 1fr)`, gap: '8px' }}>
+                {[
+                  { value: '720p', label: '720p', desc: '1280×720 - Standard', plans: ['basic', 'pro', 'pro_max'] },
+                  { value: '1080p', label: '1080p', desc: '1920×1080 - Full HD', plans: ['pro', 'pro_max'] },
+                  { value: '4k', label: '4K', desc: '3840×2160 - Ultra HD', plans: ['pro_max'] }
+                ].filter(res => res.plans.includes(plan)).map(res => (
+                  <button
+                    key={res.value}
+                    onClick={() => setExportResolution(res.value)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: exportResolution === res.value ? '2px solid #7c3aed' : '2px solid #e5e7eb',
+                      background: exportResolution === res.value ? '#f3f4f6' : '#ffffff',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>{res.label}</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{res.desc}</div>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Upgrade Prompt for Better Resolutions */}
+              {plan === 'basic' && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  borderRadius: '10px',
+                  border: '1px solid #f59e0b',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
+                    🚀 Want Higher Resolution?
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#a16207' }}>
+                    Upgrade to <strong>Pro</strong> for 1080p or <strong>Pro Max</strong> for 4K exports
+                  </div>
+                </div>
+              )}
+              
+              {plan === 'pro' && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
+                  borderRadius: '10px',
+                  border: '1px solid #ec4899',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#be185d', marginBottom: '4px' }}>
+                    👑 Want Ultra HD 4K?
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#be185d' }}>
+                    Upgrade to <strong>Pro Max</strong> for 4K (3840×2160) exports
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quality Selection */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block', 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                color: '#374151', 
+                marginBottom: '8px' 
+              }}>
+                ⭐ Quality
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                {[
+                  { value: 'low', label: 'Low', desc: 'Fast export' },
+                  { value: 'medium', label: 'Medium', desc: 'Balanced' },
+                  { value: 'high', label: 'High', desc: 'Best quality' }
+                ].map(quality => (
+                  <button
+                    key={quality.value}
+                    onClick={() => setExportQuality(quality.value)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: exportQuality === quality.value ? '2px solid #7c3aed' : '2px solid #e5e7eb',
+                      background: exportQuality === quality.value ? '#f3f4f6' : '#ffffff',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>{quality.label}</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{quality.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowExportModal(false)}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: '10px',
+                  border: '2px solid #e5e7eb',
+                  background: '#ffffff',
+                  color: '#374151',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#f9fafb'}
+                onMouseLeave={(e) => e.target.style.background = '#ffffff'}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: isExporting 
+                    ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+                    : 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+                  color: '#ffffff',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  cursor: isExporting ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 15px rgba(124, 58, 237, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isExporting) {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 20px rgba(124, 58, 237, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isExporting) {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 15px rgba(124, 58, 237, 0.3)';
+                  }
+                }}
+              >
+                {isExporting && (
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #ffffff',
+                    borderTop: '2px solid transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                )}
+                {isExporting ? 'Exporting...' : `Export as ${exportFormat.toUpperCase()}`}
+              </button>
+            </div>
+
+            {/* Loading spinner animation */}
+            <style>
+              {`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}
+            </style>
           </div>
         </div>
       )}

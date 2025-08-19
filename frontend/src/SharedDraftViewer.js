@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { getApiUrl } from './config/config';
 
 // Helper functions copied from WallDesigner.js for consistent styling
 function getShapeStyle(shape) {
@@ -48,7 +49,7 @@ function SharedDraftViewer() {
 
   useEffect(() => {
     if (token) {
-      fetch(`/api/shared/${token}`)
+      fetch(getApiUrl(`/shared/${token}`))
         .then(res => {
           if (!res.ok) {
             throw new Error('Design not found or failed to load.');
@@ -56,8 +57,15 @@ function SharedDraftViewer() {
           return res.json();
         })
         .then(data => {
-          // The session_data is a JSON string, so we need to parse it
-          const sessionData = typeof data.session_data === 'string' ? JSON.parse(data.session_data) : data.session_data;
+          // The backend returns the draft data in the 'data' field, not 'session_data'
+          let sessionData;
+          if (data.data) {
+            sessionData = typeof data.data === "string" ? JSON.parse(data.data) : data.data;
+          } else if (data.session_data) {
+            sessionData = typeof data.session_data === "string" ? JSON.parse(data.session_data) : data.session_data;
+          } else {
+            sessionData = data;
+          }
           setDraft(sessionData);
           setLoading(false);
         })

@@ -1,10 +1,7 @@
 const config = {
   // API Configuration
   api: {
-    baseUrl: process.env.REACT_APP_API_BASE_URL || 
-             (process.env.NODE_ENV === 'production' 
-               ? 'http://13.203.67.147:5000'
-               : 'http://localhost:5000'),
+    baseUrl: 'http://13.203.67.147:5000',
     prefix: process.env.REACT_APP_API_PREFIX || '/api'
   },
   
@@ -53,7 +50,14 @@ export const getApiUrl = (endpoint) => {
   const baseUrl = config.api.baseUrl;
   const prefix = config.api.prefix;
   const fullUrl = `${baseUrl}${prefix}${endpoint}`;
-  console.log('🔍 API Config:', { baseUrl, prefix, endpoint, fullUrl });
+  console.log('🔍 API Config:', { 
+    baseUrl, 
+    prefix, 
+    endpoint, 
+    fullUrl,
+    envVar: process.env.REACT_APP_API_BASE_URL,
+    nodeEnv: process.env.NODE_ENV
+  });
   return fullUrl;
 };
 
